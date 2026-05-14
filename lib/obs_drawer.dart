@@ -8,10 +8,24 @@ class ObsNavigationDrawer extends StatelessWidget {
     super.key,
     required this.universityName,
     this.schoolLogoPath,
+    required this.onDersKayit,
+    required this.onDevamsizlik,
+    required this.onDonemOrtalamalari,
+    required this.onNotListesi,
+    required this.onProfile,
   });
 
   final String universityName;
   final String? schoolLogoPath;
+
+  /// Menü satırı; çekmeceyi ana ekran [closeDrawer] ile kapatır (HomePage).
+  final VoidCallback onDersKayit;
+  final VoidCallback onDevamsizlik;
+  final VoidCallback onDonemOrtalamalari;
+  final VoidCallback onNotListesi;
+
+  /// Alt sabit öğe: profil düzenleme ([HomePage] çekmeden kapatır).
+  final VoidCallback onProfile;
 
   static const Color _bg = Color(0xFF152844);
 
@@ -110,18 +124,18 @@ class ObsNavigationDrawer extends StatelessWidget {
                       title: const Text('Ders ve Dönem İşlemleri'),
                       initiallyExpanded: true,
                       children: [
-                        _sub(context, 'Ders Kayıt'),
+                        _navTile(context, 'Ders Kayıt', onDersKayit),
                         _sub(context, 'Bütünleme Kayıt'),
                         _sub(context, 'Ders Ekle/Bırak'),
-                        _sub(context, 'Dönem Ortalamaları'),
-                        _sub(context, 'Not Listesi'),
+                        _navTile(context, 'Dönem Ortalamaları', onDonemOrtalamalari),
+                        _navTile(context, 'Not Listesi', onNotListesi),
                         _sub(context, 'Transkript'),
                         _sub(context, 'Transkript Senaryosu'),
                         _sub(context, 'Diğer Belgeler'),
                         _sub(context, 'Müfredat Durum'),
                         _sub(context, 'Staj Başvurusu'),
                         _sub(context, 'Akademik Faaliyetler'),
-                        _sub(context, 'Devamsızlık Durumu'),
+                        _navTile(context, 'Devamsızlık Durumu', onDevamsizlik),
                       ],
                     ),
                     ExpansionTile(
@@ -154,10 +168,50 @@ class ObsNavigationDrawer extends StatelessWidget {
                   ],
                 ),
               ),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: Colors.white.withValues(alpha: 0.18),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline_rounded),
+                title: Text(
+                  'Profil',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.98),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: onProfile,
+                dense: true,
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  static Widget _navTile(
+    BuildContext context,
+    String title,
+    VoidCallback onOpen,
+  ) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.only(left: 36, right: 16),
+      leading: Icon(
+        Icons.square_rounded,
+        size: 8,
+        color: Colors.white.withValues(alpha: 0.45),
+      ),
+      horizontalTitleGap: 8,
+      title: Text(
+        title,
+        style: TextStyle(fontSize: 13.5, color: Colors.white.withValues(alpha: 0.95)),
+      ),
+      onTap: onOpen,
     );
   }
 

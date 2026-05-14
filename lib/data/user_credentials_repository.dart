@@ -17,6 +17,15 @@ class UserProfile {
     this.eduDepartment = '',
     this.eduGrade = '',
     this.universityName = '',
+    this.coursesJson = '[]',
+    this.attendanceJson = '[]',
+    this.semesterGpasJson = '[]',
+    this.gradesJson = '[]',
+    this.academicTerm = '',
+    this.advisorInfo = '',
+    this.registrationDate = '',
+    this.overallGpa = '',
+    this.dashboardWarning = '',
   });
 
   final String firstName;
@@ -40,6 +49,33 @@ class UserProfile {
 
   /// Drawer başlığında gösterilir (örn. Akdeniz Üniversitesi).
   final String universityName;
+
+  /// [CourseRecord] listesi için JSON dizisi (`[]`).
+  final String coursesJson;
+
+  /// [AttendanceRecord] listesi.
+  final String attendanceJson;
+
+  /// [SemesterGpaRecord] listesi.
+  final String semesterGpasJson;
+
+  /// [GradeRecord] listesi (not kartı satırları).
+  final String gradesJson;
+
+  /// Örn. `Güz`, `Bahar` — üst çubuk ve aktif dönem kartında [academicYear] ile birleştirilir.
+  final String academicTerm;
+
+  /// Danışman (ünvan + ad soyad).
+  final String advisorInfo;
+
+  /// Ana sayfada kayıt tarihi metni (örn. 28.08.2023).
+  final String registrationDate;
+
+  /// Genel AGNO gösterimi (örn. `0` veya `3,45`).
+  final String overallGpa;
+
+  /// Boş değilse ana sayfada kırmızı uyarı kartı.
+  final String dashboardWarning;
 }
 
 /// Yerel SQLite: tek satır kullanıcı + `logged_in` oturumu.
@@ -57,7 +93,7 @@ class UserCredentialsRepository {
   static const String _table = 'credentials';
   static const int _singletonId = 1;
   static const String _dbFile = 'obs_user.db';
-  static const int _dbVersion = 7;
+  static const int _dbVersion = 9;
 
   Future<Directory> get credentialDirectory async {
     final sub = Directory(p.join(Directory.systemTemp.path, 'obs_credentials'));
@@ -91,6 +127,15 @@ CREATE TABLE $_table (
   edu_department TEXT NOT NULL DEFAULT '',
   edu_grade TEXT NOT NULL DEFAULT '',
   university_name TEXT NOT NULL DEFAULT '',
+  courses_json TEXT NOT NULL DEFAULT '[]',
+  attendance_json TEXT NOT NULL DEFAULT '[]',
+  semester_gpas_json TEXT NOT NULL DEFAULT '[]',
+  grades_json TEXT NOT NULL DEFAULT '[]',
+  academic_term TEXT NOT NULL DEFAULT '',
+  advisor_info TEXT NOT NULL DEFAULT '',
+  registration_date TEXT NOT NULL DEFAULT '',
+  overall_gpa TEXT NOT NULL DEFAULT '',
+  dashboard_warning TEXT NOT NULL DEFAULT '',
   logged_in INTEGER NOT NULL DEFAULT 0
 )
 ''');
@@ -139,6 +184,37 @@ CREATE TABLE $_table (
             "ALTER TABLE $_table ADD COLUMN university_name TEXT DEFAULT ''",
           );
         }
+        if (oldVersion < 8) {
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN courses_json TEXT DEFAULT '[]'",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN attendance_json TEXT DEFAULT '[]'",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN semester_gpas_json TEXT DEFAULT '[]'",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN grades_json TEXT DEFAULT '[]'",
+          );
+        }
+        if (oldVersion < 9) {
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN academic_term TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN advisor_info TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN registration_date TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN overall_gpa TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN dashboard_warning TEXT DEFAULT ''",
+          );
+        }
       },
     );
     await _ensureSingletonRow(_db!);
@@ -158,6 +234,15 @@ CREATE TABLE $_table (
         'edu_department': '',
         'edu_grade': '',
         'university_name': '',
+        'courses_json': '[]',
+        'attendance_json': '[]',
+        'semester_gpas_json': '[]',
+        'grades_json': '[]',
+        'academic_term': '',
+        'advisor_info': '',
+        'registration_date': '',
+        'overall_gpa': '',
+        'dashboard_warning': '',
         'logged_in': 0,
       };
 
@@ -184,7 +269,23 @@ CREATE TABLE $_table (
       eduDepartment: (m['edu_department'] as String?)?.trim() ?? '',
       eduGrade: (m['edu_grade'] as String?)?.trim() ?? '',
       universityName: (m['university_name'] as String?)?.trim() ?? '',
+      coursesJson: _columnJson(m, 'courses_json'),
+      attendanceJson: _columnJson(m, 'attendance_json'),
+      semesterGpasJson: _columnJson(m, 'semester_gpas_json'),
+      gradesJson: _columnJson(m, 'grades_json'),
+      academicTerm: (m['academic_term'] as String?)?.trim() ?? '',
+      advisorInfo: (m['advisor_info'] as String?)?.trim() ?? '',
+      registrationDate: (m['registration_date'] as String?)?.trim() ?? '',
+      overallGpa: (m['overall_gpa'] as String?)?.trim() ?? '',
+      dashboardWarning: (m['dashboard_warning'] as String?)?.trim() ?? '',
     );
+  }
+
+  static String _columnJson(Map<String, Object?> m, String column) {
+    final v = m[column];
+    if (v is! String) return '[]';
+    final t = v.trim();
+    return t.isEmpty ? '[]' : t;
   }
 
   Future<UserProfile> getStored() async {
@@ -240,6 +341,15 @@ CREATE TABLE $_table (
         eduDepartment: '',
         eduGrade: '',
         universityName: '',
+        coursesJson: '[]',
+        attendanceJson: '[]',
+        semesterGpasJson: '[]',
+        gradesJson: '[]',
+        academicTerm: '',
+        advisorInfo: '',
+        registrationDate: '',
+        overallGpa: '',
+        dashboardWarning: '',
       );
 
   /// [logged_in] sütununa dokunmaz — oturum korunur.
@@ -260,6 +370,23 @@ CREATE TABLE $_table (
         'edu_department': profile.eduDepartment.trim(),
         'edu_grade': profile.eduGrade.trim(),
         'university_name': profile.universityName.trim(),
+        'courses_json': profile.coursesJson.trim().isEmpty
+            ? '[]'
+            : profile.coursesJson.trim(),
+        'attendance_json': profile.attendanceJson.trim().isEmpty
+            ? '[]'
+            : profile.attendanceJson.trim(),
+        'semester_gpas_json': profile.semesterGpasJson.trim().isEmpty
+            ? '[]'
+            : profile.semesterGpasJson.trim(),
+        'grades_json': profile.gradesJson.trim().isEmpty
+            ? '[]'
+            : profile.gradesJson.trim(),
+        'academic_term': profile.academicTerm.trim(),
+        'advisor_info': profile.advisorInfo.trim(),
+        'registration_date': profile.registrationDate.trim(),
+        'overall_gpa': profile.overallGpa.trim(),
+        'dashboard_warning': profile.dashboardWarning.trim(),
       },
       where: 'id = ?',
       whereArgs: [_singletonId],

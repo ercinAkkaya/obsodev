@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'data/user_credentials_repository.dart';
 import 'obs_drawer.dart';
+import 'pages/attendance_status_page.dart';
+import 'pages/course_registration_page.dart';
+import 'pages/grade_list_page.dart';
+import 'pages/semester_gpa_page.dart';
 import 'profile_page.dart';
 
 /// Ana sayfa: üst çubukta dönem/yıl, ev + duyuru ikonları ve profil fotoğrafı.
@@ -20,7 +24,19 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _loading = true;
+
+  /// Profilde uyarı yazılmışsa kart kapatılınca gizlenir (sayfa yenilenince sıfırlanır).
+  bool _warningDismissed = false;
+
   String _academicYear = '';
+  String _academicTerm = '';
+  String _eduFaculty = '';
+  String _eduDepartment = '';
+  String _eduGrade = '';
+  String _advisorInfo = '';
+  String _registrationDate = '';
+  String _overallGpa = '';
+  String _dashboardWarning = '';
   String _universityName = '';
   String? _profilePhotoPath;
   String? _schoolLogoPath;
@@ -39,18 +55,36 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() {
         _academicYear = p.academicYear.trim();
+        _academicTerm = p.academicTerm.trim();
+        _eduFaculty = p.eduFaculty.trim();
+        _eduDepartment = p.eduDepartment.trim();
+        _eduGrade = p.eduGrade.trim();
+        _advisorInfo = p.advisorInfo.trim();
+        _registrationDate = p.registrationDate.trim();
+        _overallGpa = p.overallGpa.trim();
+        _dashboardWarning = p.dashboardWarning.trim();
         _universityName = p.universityName.trim();
         _profilePhotoPath = p.profilePhotoPath;
         _schoolLogoPath = p.schoolLogoPath;
+        _warningDismissed = false;
         _loading = false;
       });
     } on Object catch (_) {
       if (!mounted) return;
       setState(() {
         _academicYear = '';
+        _academicTerm = '';
+        _eduFaculty = '';
+        _eduDepartment = '';
+        _eduGrade = '';
+        _advisorInfo = '';
+        _registrationDate = '';
+        _overallGpa = '';
+        _dashboardWarning = '';
         _universityName = '';
         _profilePhotoPath = null;
         _schoolLogoPath = null;
+        _warningDismissed = false;
         _loading = false;
       });
     }
@@ -66,6 +100,17 @@ class _HomePageState extends State<HomePage> {
     await _refreshHeader();
   }
 
+  /// Çekmece animasyonundan sonra ilgili ekranı aç.
+  void _openAfterDrawer(Widget page) {
+    _scaffoldKey.currentState?.closeDrawer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => page),
+      );
+    });
+  }
+
   Widget _leadingTitle() {
     if (_loading) {
       return const SizedBox(
@@ -76,14 +121,36 @@ class _HomePageState extends State<HomePage> {
     }
 
     final y = _academicYear.trim();
+    final t = _academicTerm.trim();
+    if (y.isEmpty && t.isEmpty) {
+      return const Text(
+        'Profilden dönem',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      );
+    }
+    if (y.isEmpty) {
+      return Text(
+        t,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      );
+    }
+    if (t.isEmpty) {
+      return Text(
+        y,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      );
+    }
     return Text(
-      y.isEmpty ? 'Eğitim yılı (Profilden)' : y,
+      '$y $t',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
     );
   }
 
@@ -95,6 +162,212 @@ class _HomePageState extends State<HomePage> {
     return FileImage(f);
   }
 
+  static const Color _cardActive = Color(0xFF1C2F4F);
+  static const Color _cardAdvisor = Color(0xFF2E7D32);
+  static const Color _cardEdu = Color(0xFF00ACC1);
+  static const Color _cardReg = Color(0xFF546E7A);
+  static const Color _cardWarn = Color(0xFFC62828);
+
+  String _lineOrPlaceholder(String s, String placeholder) {
+    final t = s.trim();
+    return t.isEmpty ? placeholder : t;
+  }
+
+  Widget _summaryCard({
+    required Color backgroundColor,
+    required IconData icon,
+    required String title,
+    required List<String> lines,
+    VoidCallback? onDetail,
+  }) {
+    return Material(
+      color: backgroundColor,
+      elevation: 0,
+      borderRadius: BorderRadius.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  for (final line in lines)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        line,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  if (onDetail != null) ...[
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: onDetail,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Detay', style: TextStyle(fontWeight: FontWeight.w600)),
+                            SizedBox(width: 6),
+                            Icon(Icons.arrow_forward_rounded, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _warningCard(String message) {
+    return Material(
+      color: _cardWarn,
+      elevation: 0,
+      borderRadius: BorderRadius.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => setState(() => _warningDismissed = true),
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              tooltip: 'Kapat',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dashboardBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final periodSubtitle = _lineOrPlaceholder(
+      '${_academicYear.trim()} ${_academicTerm.trim()}'.trim(),
+      'Profil › Öğrenim bilgileri',
+    );
+
+    final advisorBody = _lineOrPlaceholder(
+      _advisorInfo,
+      'Profil › Danışman',
+    );
+
+    final dept = _lineOrPlaceholder(_eduDepartment, 'Bölüm / program (Profil)');
+    final grd = _lineOrPlaceholder(_eduGrade, 'Sınıf (Profil)');
+
+    final regDate = _registrationDate.trim().isEmpty
+        ? '—'
+        : _registrationDate.trim();
+    final agno = _overallGpa.trim().isEmpty ? '—' : _overallGpa.trim();
+
+    final showWarning =
+        !_warningDismissed && _dashboardWarning.trim().isNotEmpty;
+
+    final fac = _eduFaculty.trim();
+    final eduLines = <String>[
+      if (fac.isNotEmpty) fac,
+      dept,
+      grd,
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+      children: [
+        if (showWarning) ...[
+          _warningCard(_dashboardWarning.trim()),
+          const SizedBox(height: 10),
+        ],
+        _summaryCard(
+          backgroundColor: _cardActive,
+          icon: Icons.account_balance_rounded,
+          title: 'Aktif Akademik Dönem Bilgileri',
+          lines: [periodSubtitle],
+        ),
+        const SizedBox(height: 10),
+        _summaryCard(
+          backgroundColor: _cardAdvisor,
+          icon: Icons.person_pin_rounded,
+          title: 'Danışman Bilgileri',
+          lines: [advisorBody],
+        ),
+        const SizedBox(height: 10),
+        _summaryCard(
+          backgroundColor: _cardEdu,
+          icon: Icons.workspace_premium_rounded,
+          title: 'Öğrenim Bilgileri',
+          lines: eduLines,
+        ),
+        const SizedBox(height: 10),
+        _summaryCard(
+          backgroundColor: _cardReg,
+          icon: Icons.storage_rounded,
+          title: 'Kayıt ve not ortalaması',
+          lines: [
+            'Kayıt Tarihi: $regDate',
+            'AGNO: $agno',
+          ],
+          onDetail: () => _openAfterDrawer(const SemesterGpaPage()),
+        ),
+      ],
+    );
+  }
+
+  /// Çekmeden çıkıp profil rotasına gider (AppBar’daki foto ile aynı).
+  void _openProfileAfterDrawer() {
+    _scaffoldKey.currentState?.closeDrawer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openProfile();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final avatar = _avatarImage();
@@ -104,6 +377,11 @@ class _HomePageState extends State<HomePage> {
       drawer: ObsNavigationDrawer(
         universityName: _universityName,
         schoolLogoPath: _schoolLogoPath,
+        onDersKayit: () => _openAfterDrawer(const CourseRegistrationPage()),
+        onDevamsizlik: () => _openAfterDrawer(const AttendanceStatusPage()),
+        onDonemOrtalamalari: () => _openAfterDrawer(const SemesterGpaPage()),
+        onNotListesi: () => _openAfterDrawer(const GradeListPage()),
+        onProfile: _openProfileAfterDrawer,
       ),
       appBar: AppBar(
         backgroundColor: _obsAppBarBg,
@@ -192,37 +470,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.school_rounded, size: 72, color: Color(0xFFD32F2F)),
-              const SizedBox(height: 24),
-              const Text(
-                'Giriş başarılı',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Sol menüden ÖBS modüllerine bakın; üniversite adı için Profil › Üniversite.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.black54,
-                    ),
-              ),
-              const SizedBox(height: 36),
-              FilledButton.icon(
-                onPressed: _openProfile,
-                icon: const Icon(Icons.person_outline),
-                label: const Text('Profil'),
-              ),
-            ],
-          ),
-        ),
-      ),
+      body: _dashboardBody(),
     );
   }
 }

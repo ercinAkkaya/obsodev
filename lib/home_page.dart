@@ -318,7 +318,7 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       children: [
         if (showWarning) ...[
           _warningCard(_dashboardWarning.trim()),

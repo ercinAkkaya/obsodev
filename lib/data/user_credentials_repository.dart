@@ -16,6 +16,7 @@ class UserProfile {
     this.eduFaculty = '',
     this.eduDepartment = '',
     this.eduGrade = '',
+    this.universityName = '',
   });
 
   final String firstName;
@@ -36,6 +37,9 @@ class UserProfile {
 
   /// Örn. `1. Sınıf`.
   final String eduGrade;
+
+  /// Drawer başlığında gösterilir (örn. Akdeniz Üniversitesi).
+  final String universityName;
 }
 
 /// Yerel SQLite: tek satır kullanıcı + `logged_in` oturumu.
@@ -53,7 +57,7 @@ class UserCredentialsRepository {
   static const String _table = 'credentials';
   static const int _singletonId = 1;
   static const String _dbFile = 'obs_user.db';
-  static const int _dbVersion = 6;
+  static const int _dbVersion = 7;
 
   Future<Directory> get credentialDirectory async {
     final sub = Directory(p.join(Directory.systemTemp.path, 'obs_credentials'));
@@ -86,6 +90,7 @@ CREATE TABLE $_table (
   edu_faculty TEXT NOT NULL DEFAULT '',
   edu_department TEXT NOT NULL DEFAULT '',
   edu_grade TEXT NOT NULL DEFAULT '',
+  university_name TEXT NOT NULL DEFAULT '',
   logged_in INTEGER NOT NULL DEFAULT 0
 )
 ''');
@@ -129,6 +134,11 @@ CREATE TABLE $_table (
             "ALTER TABLE $_table ADD COLUMN edu_grade TEXT DEFAULT ''",
           );
         }
+        if (oldVersion < 7) {
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN university_name TEXT DEFAULT ''",
+          );
+        }
       },
     );
     await _ensureSingletonRow(_db!);
@@ -147,6 +157,7 @@ CREATE TABLE $_table (
         'edu_faculty': '',
         'edu_department': '',
         'edu_grade': '',
+        'university_name': '',
         'logged_in': 0,
       };
 
@@ -172,6 +183,7 @@ CREATE TABLE $_table (
       eduFaculty: (m['edu_faculty'] as String?)?.trim() ?? '',
       eduDepartment: (m['edu_department'] as String?)?.trim() ?? '',
       eduGrade: (m['edu_grade'] as String?)?.trim() ?? '',
+      universityName: (m['university_name'] as String?)?.trim() ?? '',
     );
   }
 
@@ -227,6 +239,7 @@ CREATE TABLE $_table (
         eduFaculty: '',
         eduDepartment: '',
         eduGrade: '',
+        universityName: '',
       );
 
   /// [logged_in] sütununa dokunmaz — oturum korunur.
@@ -246,6 +259,7 @@ CREATE TABLE $_table (
         'edu_faculty': profile.eduFaculty.trim(),
         'edu_department': profile.eduDepartment.trim(),
         'edu_grade': profile.eduGrade.trim(),
+        'university_name': profile.universityName.trim(),
       },
       where: 'id = ?',
       whereArgs: [_singletonId],

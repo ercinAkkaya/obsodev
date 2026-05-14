@@ -3,6 +3,7 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 
 import 'data/user_credentials_repository.dart';
+import 'obs_drawer.dart';
 import 'profile_page.dart';
 
 /// Ana sayfa: üst çubukta dönem/yıl, ev + duyuru ikonları ve profil fotoğrafı.
@@ -16,11 +17,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   bool _loading = true;
   String _academicYear = '';
+  String _universityName = '';
   String? _profilePhotoPath;
+  String? _schoolLogoPath;
 
-  static const Color _obsAppBarBg = Color(0xFF0D1B2A);
+  static const Color _obsAppBarBg = Color(0xFF1C2F4F);
 
   @override
   void initState() {
@@ -34,14 +39,18 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() {
         _academicYear = p.academicYear.trim();
+        _universityName = p.universityName.trim();
         _profilePhotoPath = p.profilePhotoPath;
+        _schoolLogoPath = p.schoolLogoPath;
         _loading = false;
       });
     } on Object catch (_) {
       if (!mounted) return;
       setState(() {
         _academicYear = '';
+        _universityName = '';
         _profilePhotoPath = null;
+        _schoolLogoPath = null;
         _loading = false;
       });
     }
@@ -91,6 +100,11 @@ class _HomePageState extends State<HomePage> {
     final avatar = _avatarImage();
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: ObsNavigationDrawer(
+        universityName: _universityName,
+        schoolLogoPath: _schoolLogoPath,
+      ),
       appBar: AppBar(
         backgroundColor: _obsAppBarBg,
         foregroundColor: Colors.white,
@@ -101,7 +115,7 @@ class _HomePageState extends State<HomePage> {
         titleSpacing: 0,
         leading: IconButton(
           tooltip: 'Menü',
-          onPressed: () {},
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           icon: const Icon(Icons.menu_rounded),
         ),
         title: _leadingTitle(),
@@ -193,7 +207,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Üst bardaki fotoğrafa dokunarak Profil ve öğrenim bilgisine gidin.',
+                'Sol menüden ÖBS modüllerine bakın; üniversite adı için Profil › Üniversite.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.black54,

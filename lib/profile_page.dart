@@ -27,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _eduFaculty = TextEditingController();
   final _eduDepartment = TextEditingController();
   final _eduGrade = TextEditingController();
+  final _universityName = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _profilePhotoPath;
@@ -57,6 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _eduFaculty.text = r.eduFaculty;
       _eduDepartment.text = r.eduDepartment;
       _eduGrade.text = r.eduGrade;
+      _universityName.text = r.universityName;
       _profilePhotoPath = r.profilePhotoPath;
       _schoolLogoPath = r.schoolLogoPath;
     } on Object catch (_) {
@@ -70,6 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _eduFaculty.text = d.eduFaculty;
       _eduDepartment.text = d.eduDepartment;
       _eduGrade.text = d.eduGrade;
+      _universityName.text = d.universityName;
       _profilePhotoPath = d.profilePhotoPath;
       _schoolLogoPath = d.schoolLogoPath;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -199,6 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _eduFaculty.dispose();
     _eduDepartment.dispose();
     _eduGrade.dispose();
+    _universityName.dispose();
     super.dispose();
   }
 
@@ -257,6 +261,7 @@ class _ProfilePageState extends State<ProfilePage> {
       eduFaculty: _eduFaculty.text.trim(),
       eduDepartment: _eduDepartment.text.trim(),
       eduGrade: _eduGrade.text.trim(),
+      universityName: _universityName.text.trim(),
     );
 
     setState(() => _saving = true);
@@ -513,6 +518,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   _sectionTitle('Kişisel bilgiler'),
                   const SizedBox(height: 10),
                   TextField(
+                    controller: _firstName,
                     textCapitalization: TextCapitalization.words,
                     decoration: _decoration('İsim'),
                     textInputAction: TextInputAction.next,
@@ -540,6 +546,22 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 20),
                   _educationPanel(),
+                  const SizedBox(height: 22),
+                  _sectionTitle('Üniversite'),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _universityName,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    decoration: _decoration('Üniversite adı').copyWith(
+                      helperText:
+                          'Menü başlığında gösterilir (örn. Akdeniz Üniversitesi)',
+                      helperStyle: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 22),
                   _sectionTitle('Okul logosu'),
                   const SizedBox(height: 8),

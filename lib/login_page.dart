@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'data/user_credentials_repository.dart';
+
 /// Referans tasarım: ~390 × 844 pt. Tüm telefonlarda aynı görsel oran.
 class _UiScale {
   _UiScale._(this._k);
@@ -23,14 +25,73 @@ class _UiScale {
   double d(double designDp) => designDp * _k;
 }
 
-/// YÖKSİS tarzı giriş ekranı — sadece arayüz (ödev prototipi).
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+/// YÖKSİS tarzı giriş ekranı; TC ve şifre yerel SQLite ile doğrulanır.
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key, this.onSignedIn});
+
+  /// [ObsApp] oturum kapısı; verilirse girişte [Navigator] ile `/home` kullanılmaz.
+  final VoidCallback? onSignedIn;
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
 
   static const Color _red = Color(0xFFD32F2F);
   static const Color _linkBlue = Color(0xFF1565C0);
   static const Color _iconBoxBg = Color(0xFFE3F2FD);
   static const Color _fieldBorder = Color(0xFFB0BEC5);
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _tc = TextEditingController();
+  final _pwd = TextEditingController();
+  bool _busy = false;
+
+  static final _digits11 = RegExp(r'^\d{11}$');
+
+  @override
+  void dispose() {
+    _tc.dispose();
+    _pwd.dispose();
+    super.dispose();
+  }
+
+  Future<void> _attemptLogin() async {
+    if (_busy) return;
+    FocusScope.of(context).unfocus();
+    final tc = _tc.text.trim();
+    final pwd = _pwd.text;
+
+    if (!_digits11.hasMatch(tc)) {
+      _snack('T.C. kimlik numarası 11 haneli rakam olmalıdır.');
+      return;
+    }
+    if (pwd.isEmpty) {
+      _snack('Şifre giriniz.');
+      return;
+    }
+
+    setState(() => _busy = true);
+    final ok = await UserCredentialsRepository.instance.verifyLogin(tc, pwd);
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (!ok) {
+      _snack('T.C. veya şifre hatalı.');
+      return;
+    }
+
+    try {
+      await UserCredentialsRepository.instance.setLoggedIn(true);
+    } on Object catch (_) {}
+
+    if (!mounted) return;
+
+    widget.onSignedIn?.call();
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +117,7 @@ class LoginPage extends StatelessWidget {
                   children: [
                     SizedBox(height: r.d(40)),
                     _LabeledField(
+                      controller: _tc,
                       hint: 'Kimlik Numaranızı Giriniz',
                       obscureText: false,
                       prefix: Icons.person,
@@ -68,6 +130,7 @@ class LoginPage extends StatelessWidget {
                     ),
                     SizedBox(height: r.d(14)),
                     _LabeledField(
+                      controller: _pwd,
                       hint: 'Şifrenizi Giriniz',
                       obscureText: true,
                       prefix: Icons.vpn_key,
@@ -79,7 +142,7 @@ class LoginPage extends StatelessWidget {
                       child: TextButton(
                         onPressed: () {},
                         style: TextButton.styleFrom(
-                          foregroundColor: _linkBlue,
+                          foregroundColor: LoginPage._linkBlue,
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -94,21 +157,30 @@ class LoginPage extends StatelessWidget {
                     SizedBox(
                       height: r.d(48),
                       child: FilledButton(
-                        onPressed: () {},
+                        onPressed: _busy ? null : _attemptLogin,
                         style: FilledButton.styleFrom(
-                          backgroundColor: _red,
+                          backgroundColor: LoginPage._red,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(r.d(6)),
                           ),
                         ),
-                        child: Text(
-                          'YÖKSİS ile giriş',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: r.d(15),
-                          ),
-                        ),
+                        child: _busy
+                            ? SizedBox(
+                                height: r.d(22),
+                                width: r.d(22),
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'YÖKSİS ile giriş',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: r.d(15),
+                                ),
+                              ),
                       ),
                     ),
                     SizedBox(height: r.d(22)),
@@ -117,7 +189,7 @@ class LoginPage extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: () {},
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _red,
+                          foregroundColor: LoginPage._red,
                           side: BorderSide(color: const Color(0xFF424242), width: r.d(1)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(r.d(6)),
@@ -610,6 +682,7 @@ class _FadeVerticalLine extends StatelessWidget {
 
 class _LabeledField extends StatefulWidget {
   const _LabeledField({
+    this.controller,
     required this.hint,
     required this.obscureText,
     required this.prefix,
@@ -619,6 +692,7 @@ class _LabeledField extends StatefulWidget {
     this.inputFormatters,
   });
 
+  final TextEditingController? controller;
   final String hint;
   final bool obscureText;
   final IconData prefix;
@@ -694,6 +768,7 @@ class _LabeledFieldState extends State<_LabeledField> {
               ),
               Expanded(
                 child: TextField(
+                  controller: widget.controller,
                   focusNode: _focusNode,
                   obscureText: widget.obscureText,
                   keyboardType:

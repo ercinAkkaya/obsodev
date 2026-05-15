@@ -98,29 +98,40 @@ class SemesterGpaRecord {
   }
 }
 
-/// Not kartı satırı.
+/// Not kartı satırı (vize / final / büt + harf; profilden JSON).
 class GradeRecord {
   const GradeRecord({
     required this.courseCode,
     required this.courseName,
-    required this.letterGrade,
+    this.letterGrade = '',
     this.courseAkts,
+    this.vizeGrade = '',
+    this.finalGrade = '',
+    this.butExam = '',
   });
 
   final String courseCode;
   final String courseName;
 
-  /// Harf notu — örn. BA, DD.
+  /// Harf notu — BA, DD vb.; boş olabilir.
   final String letterGrade;
 
-  /// Nullable — isteğe bağlı gösterilir.
   final int? courseAkts;
+
+  final String vizeGrade;
+  final String finalGrade;
+
+  /// Bütünleme notu (“büt”).
+  final String butExam;
 
   Map<String, Object?> toJson() {
     return {
       'code': courseCode,
       'name': courseName,
       'letter': letterGrade,
+      'vize': vizeGrade,
+      'finalNot': finalGrade,
+      'but': butExam,
       if (courseAkts != null) 'akts': courseAkts,
     };
   }
@@ -132,6 +143,9 @@ class GradeRecord {
       courseName: '${map['name'] ?? ''}'.trim(),
       letterGrade: '${map['letter'] ?? map['letterGrade'] ?? ''}'.trim(),
       courseAkts: a != null ? (a is int ? a : int.tryParse('$a')) : null,
+      vizeGrade: '${map['vize'] ?? ''}'.trim(),
+      finalGrade: '${map['finalNot'] ?? map['final'] ?? map['final_grade'] ?? ''}'.trim(),
+      butExam: '${map['but'] ?? map['butExam'] ?? ''}'.trim(),
     );
   }
 }

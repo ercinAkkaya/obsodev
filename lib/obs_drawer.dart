@@ -8,27 +8,35 @@ class ObsNavigationDrawer extends StatelessWidget {
     super.key,
     required this.universityName,
     this.schoolLogoPath,
-    required this.onDersKayit,
-    required this.onDevamsizlik,
+    required this.onDersKayitTarihi,
     required this.onDonemOrtalamalari,
     required this.onNotListesi,
+    required this.onDevamsizlik,
+    required this.onYokBasvurular,
+    required this.onDijitalKimlik,
+    required this.onOsym,
+    required this.onAktifDonem,
+    required this.onAktifOgrenim,
     required this.onProfile,
   });
 
   final String universityName;
   final String? schoolLogoPath;
 
-  /// Menü satırı; çekmeceyi ana ekran [closeDrawer] ile kapatır (HomePage).
-  final VoidCallback onDersKayit;
-  final VoidCallback onDevamsizlik;
+  final VoidCallback onDersKayitTarihi;
   final VoidCallback onDonemOrtalamalari;
   final VoidCallback onNotListesi;
+  final VoidCallback onDevamsizlik;
+  final VoidCallback onYokBasvurular;
+  final VoidCallback onDijitalKimlik;
+  final VoidCallback onOsym;
+  final VoidCallback onAktifDonem;
+  final VoidCallback onAktifOgrenim;
 
   /// Alt sabit öğe: profil düzenleme ([HomePage] çekmeden kapatır).
   final VoidCallback onProfile;
 
   static const Color _bg = Color(0xFF152844);
-
   static const Color _muted = Colors.white70;
 
   @override
@@ -111,60 +119,28 @@ class ObsNavigationDrawer extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   children: [
                     ExpansionTile(
-                      leading: const Icon(Icons.grid_view_rounded),
-                      title: const Text('Genel İşlemler'),
-                      initiallyExpanded: false,
-                      children: [
-                        _sub(context, 'Duyurular'),
-                        _sub(context, 'Özet'),
-                      ],
-                    ),
-                    ExpansionTile(
                       leading: const Icon(Icons.menu_book_rounded),
-                      title: const Text('Ders ve Dönem İşlemleri'),
+                      title: const Text('Ders ve genel işlemler'),
                       initiallyExpanded: true,
                       children: [
-                        _navTile(context, 'Ders Kayıt', onDersKayit),
-                        _sub(context, 'Bütünleme Kayıt'),
-                        _sub(context, 'Ders Ekle/Bırak'),
-                        _navTile(context, 'Dönem Ortalamaları', onDonemOrtalamalari),
-                        _navTile(context, 'Not Listesi', onNotListesi),
-                        _sub(context, 'Transkript'),
-                        _sub(context, 'Transkript Senaryosu'),
-                        _sub(context, 'Diğer Belgeler'),
-                        _sub(context, 'Müfredat Durum'),
-                        _sub(context, 'Staj Başvurusu'),
-                        _sub(context, 'Akademik Faaliyetler'),
-                        _navTile(context, 'Devamsızlık Durumu', onDevamsizlik),
-                      ],
-                    ),
-                    ExpansionTile(
-                      leading: const Icon(Icons.description_outlined),
-                      title: const Text('Form İşlemleri'),
-                      initiallyExpanded: false,
-                      children: [
-                        _sub(context, 'Form talepleri'),
-                        _sub(context, 'Onay bekleyen formlar'),
+                        _navTile(context, 'Ders kayıt tarihi', onDersKayitTarihi),
+                        _navTile(context, 'Dönem ortalamaları', onDonemOrtalamalari),
+                        _navTile(context, 'Not listesi', onNotListesi),
+                        _navTile(context, 'Devamsızlık', onDevamsizlik),
                       ],
                     ),
                     ExpansionTile(
                       leading: const Icon(Icons.account_tree_outlined),
-                      title: const Text('YÖKSİS İşlemleri'),
+                      title: const Text('YÖK işlemleri'),
                       initiallyExpanded: false,
                       children: [
-                        _sub(context, 'YÖKSİS aktarımları'),
-                        _sub(context, 'Başvurular'),
+                        _navTile(context, 'Başvurular ve sonuçları', onYokBasvurular),
                       ],
                     ),
-                    ExpansionTile(
-                      leading: const Icon(Icons.badge_outlined),
-                      title: const Text('Hazırlık İşlemleri'),
-                      initiallyExpanded: false,
-                      children: [
-                        _sub(context, 'Hazırlık programı durumu'),
-                        _sub(context, 'Sınavlar'),
-                      ],
-                    ),
+                    _topLevelTile(context, Icons.fingerprint_rounded, 'Dijital kimliğim', onDijitalKimlik),
+                    _topLevelTile(context, Icons.assignment_turned_in_outlined, 'ÖSYM sonuçları başvuruları', onOsym),
+                    _topLevelTile(context, Icons.calendar_today_rounded, 'Aktif akademik dönem bilgileri', onAktifDonem),
+                    _topLevelTile(context, Icons.school_outlined, 'Aktif öğrenim bilgileri', onAktifOgrenim),
                   ],
                 ),
               ),
@@ -215,22 +191,20 @@ class ObsNavigationDrawer extends StatelessWidget {
     );
   }
 
-  static Widget _sub(BuildContext context, String title) {
+  static Widget _topLevelTile(
+    BuildContext context,
+    IconData icon,
+    String title,
+    VoidCallback onOpen,
+  ) {
     return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.only(left: 36, right: 16),
-      leading: Icon(
-        Icons.square_rounded,
-        size: 8,
-        color: Colors.white.withValues(alpha: 0.45),
-      ),
-      horizontalTitleGap: 8,
+      dense: false,
+      leading: Icon(icon, color: Colors.white.withValues(alpha: 0.95)),
       title: Text(
         title,
-        style: TextStyle(fontSize: 13.5, color: Colors.white.withValues(alpha: 0.95)),
+        style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.98)),
       ),
-      onTap: () => Navigator.of(context).pop(),
+      onTap: onOpen,
     );
   }
 }

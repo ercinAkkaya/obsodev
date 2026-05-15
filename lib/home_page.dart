@@ -6,6 +6,7 @@ import 'data/user_credentials_repository.dart';
 import 'obs_drawer.dart';
 import 'pages/attendance_status_page.dart';
 import 'pages/course_registration_page.dart';
+import 'pages/drawer_portal_pages.dart';
 import 'pages/grade_list_page.dart';
 import 'pages/semester_gpa_page.dart';
 import 'profile_page.dart';
@@ -377,10 +378,36 @@ class _HomePageState extends State<HomePage> {
       drawer: ObsNavigationDrawer(
         universityName: _universityName,
         schoolLogoPath: _schoolLogoPath,
-        onDersKayit: () => _openAfterDrawer(const CourseRegistrationPage()),
-        onDevamsizlik: () => _openAfterDrawer(const AttendanceStatusPage()),
+        onDersKayitTarihi: () => _openAfterDrawer(const CourseRegistrationPage()),
         onDonemOrtalamalari: () => _openAfterDrawer(const SemesterGpaPage()),
         onNotListesi: () => _openAfterDrawer(const GradeListPage()),
+        onDevamsizlik: () => _openAfterDrawer(const AttendanceStatusPage()),
+        onYokBasvurular: () => _openAfterDrawer(
+          PortalProfileTextPage(
+            title: 'Başvurular ve sonuçları',
+            emptyHint:
+                'Profil › «YÖK başvuru ve sonuç metni» alanını doldurduktan sonra Kaydet\'e basın.',
+            textOf: (p) => p.yokAppsInfo,
+          ),
+        ),
+        onDijitalKimlik: () => _openAfterDrawer(
+          PortalProfileTextPage(
+            title: 'Dijital kimliğim',
+            emptyHint:
+                'Profil › «Dijital kimlik bilgisi» alanını doldurduktan sonra Kaydet\'e basın.',
+            textOf: (p) => p.digitalIdInfo,
+          ),
+        ),
+        onOsym: () => _openAfterDrawer(
+          PortalProfileTextPage(
+            title: 'ÖSYM sonuçları başvuruları',
+            emptyHint:
+                'Profil › «ÖSYM bilgisi» alanını doldurduktan sonra Kaydet\'e basın.',
+            textOf: (p) => p.osymInfo,
+          ),
+        ),
+        onAktifDonem: () => _openAfterDrawer(const ActiveAcademicPeriodPage()),
+        onAktifOgrenim: () => _openAfterDrawer(const ActiveStudyInfoPage()),
         onProfile: _openProfileAfterDrawer,
       ),
       appBar: AppBar(

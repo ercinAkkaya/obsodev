@@ -34,6 +34,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _registrationDate = TextEditingController();
   final _overallGpa = TextEditingController();
   final _dashboardWarning = TextEditingController();
+  final _digitalIdInfo = TextEditingController();
+  final _yokAppsInfo = TextEditingController();
+  final _osymInfo = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _profilePhotoPath;
@@ -75,6 +78,9 @@ class _ProfilePageState extends State<ProfilePage> {
       _registrationDate.text = r.registrationDate;
       _overallGpa.text = r.overallGpa;
       _dashboardWarning.text = r.dashboardWarning;
+      _digitalIdInfo.text = r.digitalIdInfo;
+      _yokAppsInfo.text = r.yokAppsInfo;
+      _osymInfo.text = r.osymInfo;
       _profilePhotoPath = r.profilePhotoPath;
       _schoolLogoPath = r.schoolLogoPath;
       _courses = AcademicJson.decodeCourses(r.coursesJson);
@@ -98,6 +104,9 @@ class _ProfilePageState extends State<ProfilePage> {
       _registrationDate.text = d.registrationDate;
       _overallGpa.text = d.overallGpa;
       _dashboardWarning.text = d.dashboardWarning;
+      _digitalIdInfo.text = d.digitalIdInfo;
+      _yokAppsInfo.text = d.yokAppsInfo;
+      _osymInfo.text = d.osymInfo;
       _profilePhotoPath = d.profilePhotoPath;
       _schoolLogoPath = d.schoolLogoPath;
       _courses = AcademicJson.decodeCourses(d.coursesJson);
@@ -237,6 +246,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _registrationDate.dispose();
     _overallGpa.dispose();
     _dashboardWarning.dispose();
+    _digitalIdInfo.dispose();
+    _yokAppsInfo.dispose();
+    _osymInfo.dispose();
     super.dispose();
   }
 
@@ -305,6 +317,9 @@ class _ProfilePageState extends State<ProfilePage> {
       registrationDate: _registrationDate.text.trim(),
       overallGpa: _overallGpa.text.trim(),
       dashboardWarning: _dashboardWarning.text.trim(),
+      digitalIdInfo: _digitalIdInfo.text.trim(),
+      yokAppsInfo: _yokAppsInfo.text.trim(),
+      osymInfo: _osymInfo.text.trim(),
     );
 
     setState(() => _saving = true);
@@ -362,6 +377,17 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ],
     );
+  }
+
+  String _gradeCardSubtitle(GradeRecord g) {
+    final bits = <String>[
+      if (g.vizeGrade.trim().isNotEmpty) 'Vize: ${g.vizeGrade.trim()}',
+      if (g.finalGrade.trim().isNotEmpty) 'Final: ${g.finalGrade.trim()}',
+      if (g.butExam.trim().isNotEmpty) 'Büt: ${g.butExam.trim()}',
+      if (g.letterGrade.trim().isNotEmpty) 'Harf: ${g.letterGrade.trim().toUpperCase()}',
+      if (g.courseAkts != null) 'AKTS: ${g.courseAkts}',
+    ];
+    return bits.isEmpty ? 'Not satırı (vize / final / büt henüz girilmemiş).' : bits.join(' • ');
   }
 
   Widget _mutedLine(String text) => Padding(
@@ -423,7 +449,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         const SizedBox(height: 6),
         _mutedLine(
-          'Aşağıdaki satırlar menüdeki Ders Kayıt, Devamsızlık, Dönem Ortalamaları ve Not Listesi ekranlarında gösterilir. Kaydet’e basmayı unutmayın.',
+          'Çekmedeki «Ders ve genel işlemler», YÖK, dijital kimlik ve ÖSYM maddeleri bu verilerden beslenir. Portal metinlerini aşağıdaki üç alandan da girebilirsiniz. Kaydet’e basmayı unutmayın.',
         ),
         _miniBar('Ders kayıt bilgileri', _dialogCourse),
         if (_courses.isEmpty)
@@ -474,8 +500,7 @@ class _ProfilePageState extends State<ProfilePage> {
             _grades.length,
             (i) => _removeCard(
               title: '${_grades[i].courseCode} · ${_grades[i].courseName}',
-              subtitle: 'Not: ${_grades[i].letterGrade}'
-                  '${_grades[i].courseAkts != null ? ' • AKTS ${_grades[i].courseAkts}' : ''}',
+              subtitle: _gradeCardSubtitle(_grades[i]),
               onRemove: () => setState(() => _grades.removeAt(i)),
             ),
           ),
@@ -807,6 +832,37 @@ class _ProfilePageState extends State<ProfilePage> {
                       helperText: 'Doldurursanız ana sayfada kırmızı uyarı kartı çıkar; boşsa gösterilmez.',
                       helperStyle: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
+                  ),
+                  const SizedBox(height: 22),
+                  _sectionTitle('Menü › portal içerikleri'),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Çekmedeki «Dijital kimliğim», «ÖSYM», «YÖK başvuruları» sayfaları bu metinleri gösterir.',
+                    style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.35),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _digitalIdInfo,
+                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: _decoration('Dijital kimlik bilgisi'),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _yokAppsInfo,
+                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: _decoration('YÖK başvuru ve sonuç metni'),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _osymInfo,
+                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: _decoration('ÖSYM bilgisi'),
                   ),
                   const SizedBox(height: 22),
                   _sectionTitle('Üniversite'),
@@ -1210,6 +1266,9 @@ class _GradeFormDialog extends StatefulWidget {
 class _GradeFormDialogState extends State<_GradeFormDialog> {
   late final TextEditingController _code;
   late final TextEditingController _name;
+  late final TextEditingController _vize;
+  late final TextEditingController _finalNot;
+  late final TextEditingController _but;
   late final TextEditingController _letter;
   late final TextEditingController _akts;
 
@@ -1218,6 +1277,9 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
     super.initState();
     _code = TextEditingController();
     _name = TextEditingController();
+    _vize = TextEditingController();
+    _finalNot = TextEditingController();
+    _but = TextEditingController();
     _letter = TextEditingController();
     _akts = TextEditingController();
   }
@@ -1226,6 +1288,9 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
   void dispose() {
     _code.dispose();
     _name.dispose();
+    _vize.dispose();
+    _finalNot.dispose();
+    _but.dispose();
     _letter.dispose();
     _akts.dispose();
     super.dispose();
@@ -1235,10 +1300,9 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
     FocusScope.of(context).unfocus();
     final cc = _code.text.trim();
     final nn = _name.text.trim();
-    final lg = _letter.text.trim();
-    if (cc.isEmpty || nn.isEmpty || lg.isEmpty) {
+    if (cc.isEmpty || nn.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kod, ad ve harf notu zorunlu.')),
+        const SnackBar(content: Text('Ders kodu ve adı zorunludur.')),
       );
       return;
     }
@@ -1247,8 +1311,11 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
       GradeRecord(
         courseCode: cc,
         courseName: nn,
-        letterGrade: lg,
+        letterGrade: _letter.text.trim(),
         courseAkts: ak.isEmpty ? null : int.tryParse(ak),
+        vizeGrade: _vize.text.trim(),
+        finalGrade: _finalNot.text.trim(),
+        butExam: _but.text.trim(),
       ),
     );
   }
@@ -1265,7 +1332,29 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
             const SizedBox(height: 12),
             TextField(controller: _name, decoration: widget.deco('Ders adı')),
             const SizedBox(height: 12),
-            TextField(controller: _letter, decoration: widget.deco('Harf notu')),
+            TextField(
+              controller: _vize,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: widget.deco('Vize notu'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _finalNot,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: widget.deco('Final notu'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _but,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: widget.deco('Büt notu'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _letter,
+              decoration:
+                  widget.deco('Harf notu').copyWith(hintText: 'İsteğe bağlı (örn. BA)'),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _akts,

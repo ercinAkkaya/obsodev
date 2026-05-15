@@ -26,6 +26,9 @@ class UserProfile {
     this.registrationDate = '',
     this.overallGpa = '',
     this.dashboardWarning = '',
+    this.digitalIdInfo = '',
+    this.yokAppsInfo = '',
+    this.osymInfo = '',
   });
 
   final String firstName;
@@ -76,6 +79,15 @@ class UserProfile {
 
   /// Boş değilse ana sayfada kırmızı uyarı kartı.
   final String dashboardWarning;
+
+  /// Çekmece › Dijital kimliğim (profilden metin).
+  final String digitalIdInfo;
+
+  /// Çekmece › YÖK başvuruları ve sonuçları (profilden).
+  final String yokAppsInfo;
+
+  /// Çekmece › ÖSYM bilgisi (profilden).
+  final String osymInfo;
 }
 
 /// Yerel SQLite: tek satır kullanıcı + `logged_in` oturumu.
@@ -93,7 +105,7 @@ class UserCredentialsRepository {
   static const String _table = 'credentials';
   static const int _singletonId = 1;
   static const String _dbFile = 'obs_user.db';
-  static const int _dbVersion = 9;
+  static const int _dbVersion = 10;
 
   Future<Directory> get credentialDirectory async {
     final sub = Directory(p.join(Directory.systemTemp.path, 'obs_credentials'));
@@ -136,6 +148,9 @@ CREATE TABLE $_table (
   registration_date TEXT NOT NULL DEFAULT '',
   overall_gpa TEXT NOT NULL DEFAULT '',
   dashboard_warning TEXT NOT NULL DEFAULT '',
+  digital_id_info TEXT NOT NULL DEFAULT '',
+  yok_apps_info TEXT NOT NULL DEFAULT '',
+  osym_info TEXT NOT NULL DEFAULT '',
   logged_in INTEGER NOT NULL DEFAULT 0
 )
 ''');
@@ -215,6 +230,17 @@ CREATE TABLE $_table (
             "ALTER TABLE $_table ADD COLUMN dashboard_warning TEXT DEFAULT ''",
           );
         }
+        if (oldVersion < 10) {
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN digital_id_info TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN yok_apps_info TEXT DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN osym_info TEXT DEFAULT ''",
+          );
+        }
       },
     );
     await _ensureSingletonRow(_db!);
@@ -243,6 +269,9 @@ CREATE TABLE $_table (
         'registration_date': '',
         'overall_gpa': '',
         'dashboard_warning': '',
+        'digital_id_info': '',
+        'yok_apps_info': '',
+        'osym_info': '',
         'logged_in': 0,
       };
 
@@ -278,6 +307,9 @@ CREATE TABLE $_table (
       registrationDate: (m['registration_date'] as String?)?.trim() ?? '',
       overallGpa: (m['overall_gpa'] as String?)?.trim() ?? '',
       dashboardWarning: (m['dashboard_warning'] as String?)?.trim() ?? '',
+      digitalIdInfo: (m['digital_id_info'] as String?)?.trim() ?? '',
+      yokAppsInfo: (m['yok_apps_info'] as String?)?.trim() ?? '',
+      osymInfo: (m['osym_info'] as String?)?.trim() ?? '',
     );
   }
 
@@ -350,6 +382,9 @@ CREATE TABLE $_table (
         registrationDate: '',
         overallGpa: '',
         dashboardWarning: '',
+        digitalIdInfo: '',
+        yokAppsInfo: '',
+        osymInfo: '',
       );
 
   /// [logged_in] sütununa dokunmaz — oturum korunur.
@@ -387,6 +422,9 @@ CREATE TABLE $_table (
         'registration_date': profile.registrationDate.trim(),
         'overall_gpa': profile.overallGpa.trim(),
         'dashboard_warning': profile.dashboardWarning.trim(),
+        'digital_id_info': profile.digitalIdInfo.trim(),
+        'yok_apps_info': profile.yokAppsInfo.trim(),
+        'osym_info': profile.osymInfo.trim(),
       },
       where: 'id = ?',
       whereArgs: [_singletonId],

@@ -17,7 +17,7 @@ class ObsNavigationDrawer extends StatelessWidget {
     required this.onOsym,
     required this.onAktifDonem,
     required this.onAktifOgrenim,
-    required this.onProfile,
+    required this.onSchoolLogoTap,
   });
 
   final String universityName;
@@ -33,8 +33,8 @@ class ObsNavigationDrawer extends StatelessWidget {
   final VoidCallback onAktifDonem;
   final VoidCallback onAktifOgrenim;
 
-  /// Alt sabit öğe: profil düzenleme ([HomePage] çekmeden kapatır).
-  final VoidCallback onProfile;
+  /// Üstteki üniversite logosuna dokunulunca — galeriden yeni logo.
+  final VoidCallback onSchoolLogoTap;
 
   static const Color _bg = Color(0xFF152844);
   static const Color _muted = Colors.white70;
@@ -80,17 +80,31 @@ class ObsNavigationDrawer extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white.withValues(alpha: 0.16),
-                      backgroundImage: logoImage,
-                      child: logoImage != null
-                          ? null
-                          : Icon(Icons.account_balance_rounded, size: 38, color: Colors.white.withValues(alpha: 0.75)),
+                    Tooltip(
+                      message: 'Üniversite logosu — galeriden değiştir',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: onSchoolLogoTap,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.white.withValues(alpha: 0.16),
+                              backgroundImage: logoImage,
+                              child: logoImage != null
+                                  ? null
+                                  : Icon(Icons.add_photo_alternate_outlined,
+                                      size: 34, color: Colors.white.withValues(alpha: 0.85)),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      uni.isEmpty ? 'Üniversite adı (Profil)' : uni,
+                      uni.isEmpty ? 'Üniversite adı' : uni,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
@@ -143,23 +157,6 @@ class ObsNavigationDrawer extends StatelessWidget {
                     _topLevelTile(context, Icons.school_outlined, 'Aktif öğrenim bilgileri', onAktifOgrenim),
                   ],
                 ),
-              ),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.white.withValues(alpha: 0.18),
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_outline_rounded),
-                title: Text(
-                  'Profil',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.98),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onTap: onProfile,
-                dense: true,
               ),
             ],
           ),

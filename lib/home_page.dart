@@ -1,6 +1,9 @@
-import 'dart:io' show File;
+import 'dart:io' show Directory, File;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
 import 'data/user_credentials_repository.dart';
 import 'obs_drawer.dart';
@@ -88,6 +91,55 @@ class _HomePageState extends State<HomePage> {
         _warningDismissed = false;
         _loading = false;
       });
+    }
+  }
+
+  void _pickSchoolLogoFromDrawer() {
+    _scaffoldKey.currentState?.closeDrawer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _selectAndSaveSchoolLogoFromGallery();
+    });
+  }
+
+  Future<void> _selectAndSaveSchoolLogoFromGallery() async {
+    XFile? x;
+    try {
+      x = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+    } on MissingPluginException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Galeri erişimi yok — tam yeniden başlatmayı deneyin.')),
+      );
+      return;
+    }
+    if (x == null || !mounted) return;
+    try {
+      final dir = await UserCredentialsRepository.instance.credentialDirectory;
+      if (!mounted) return;
+      final logos = Directory(p.join(dir.path, 'logos'));
+      if (!await logos.exists()) await logos.create(recursive: true);
+      final ext = p.extension(x.path);
+      final safeExt = ext.isEmpty ? '.jpg' : ext;
+      final dest =
+          p.join(logos.path, 'school_${DateTime.now().millisecondsSinceEpoch}$safeExt');
+      await File(dest).writeAsBytes(await x.readAsBytes());
+      await UserCredentialsRepository.instance.setSchoolLogoPath(dest);
+      if (!mounted) return;
+      await _refreshHeader();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Üniversite logosu güncellendi.')),
+      );
+    } on Object catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logo kaydedilemedi.')),
+      );
     }
   }
 
@@ -360,15 +412,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// Çekmeden çıkıp profil rotasına gider (AppBar’daki foto ile aynı).
-  void _openProfileAfterDrawer() {
-    _scaffoldKey.currentState?.closeDrawer();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _openProfile();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final avatar = _avatarImage();
@@ -408,7 +451,7 @@ class _HomePageState extends State<HomePage> {
         ),
         onAktifDonem: () => _openAfterDrawer(const ActiveAcademicPeriodPage()),
         onAktifOgrenim: () => _openAfterDrawer(const ActiveStudyInfoPage()),
-        onProfile: _openProfileAfterDrawer,
+        onSchoolLogoTap: _pickSchoolLogoFromDrawer,
       ),
       appBar: AppBar(
         backgroundColor: _obsAppBarBg,

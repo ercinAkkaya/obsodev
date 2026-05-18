@@ -431,6 +431,36 @@ CREATE TABLE $_table (
     );
   }
 
+  /// Yalnızca çekmece üniversite logosu yolunu günceller; diğer alanlar korunur.
+  Future<void> setSchoolLogoPath(String? logoPath) async {
+    final e = await getStored();
+    await saveProfile(UserProfile(
+      firstName: e.firstName,
+      lastName: e.lastName,
+      tc: e.tc,
+      password: e.password,
+      profilePhotoPath: e.profilePhotoPath,
+      schoolLogoPath: logoPath,
+      academicYear: e.academicYear,
+      eduFaculty: e.eduFaculty,
+      eduDepartment: e.eduDepartment,
+      eduGrade: e.eduGrade,
+      universityName: e.universityName,
+      coursesJson: e.coursesJson,
+      attendanceJson: e.attendanceJson,
+      semesterGpasJson: e.semesterGpasJson,
+      gradesJson: e.gradesJson,
+      academicTerm: e.academicTerm,
+      advisorInfo: e.advisorInfo,
+      registrationDate: e.registrationDate,
+      overallGpa: e.overallGpa,
+      dashboardWarning: e.dashboardWarning,
+      digitalIdInfo: e.digitalIdInfo,
+      yokAppsInfo: e.yokAppsInfo,
+      osymInfo: e.osymInfo,
+    ));
+  }
+
   Future<bool> verifyLogin(String tcInput, String passwordInput) async {
     final tc = tcInput.trim();
     try {

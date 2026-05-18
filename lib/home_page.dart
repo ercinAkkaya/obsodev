@@ -226,6 +226,15 @@ class _HomePageState extends State<HomePage> {
     return t.isEmpty ? placeholder : t;
   }
 
+  /// Ana gövdeden bir portal sayfası aç (çekmece kapalıyken); dönüşte özet güncellenir.
+  void _openDashboardPage(Widget page) {
+    Navigator.of(context)
+        .push<void>(MaterialPageRoute<void>(builder: (_) => page))
+        .then((_) {
+      if (mounted) _refreshHeader();
+    });
+  }
+
   Widget _summaryCard({
     required Color backgroundColor,
     required IconData icon,
@@ -233,76 +242,89 @@ class _HomePageState extends State<HomePage> {
     required List<String> lines,
     VoidCallback? onDetail,
   }) {
+    final inner = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                for (final line in lines)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      line,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                if (onDetail != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Detay',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.98),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_rounded,
+                            color: Colors.white.withValues(alpha: 0.95), size: 18),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (onDetail != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Icon(Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.72), size: 28),
+            ),
+        ],
+      ),
+    );
+
     return Material(
       color: backgroundColor,
       elevation: 0,
       borderRadius: BorderRadius.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.white, size: 28),
+      child: onDetail == null
+          ? inner
+          : InkWell(
+              onTap: onDetail,
+              splashColor: Colors.white24,
+              hoverColor: Colors.white10,
+              child: inner,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  for (final line in lines)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        line,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.95),
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  if (onDetail != null) ...[
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: onDetail,
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Detay', style: TextStyle(fontWeight: FontWeight.w600)),
-                            SizedBox(width: 6),
-                            Icon(Icons.arrow_forward_rounded, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -382,6 +404,7 @@ class _HomePageState extends State<HomePage> {
           icon: Icons.account_balance_rounded,
           title: 'Aktif Akademik Dönem Bilgileri',
           lines: [periodSubtitle],
+          onDetail: () => _openDashboardPage(const ActiveAcademicPeriodPage()),
         ),
         const SizedBox(height: 10),
         _summaryCard(
@@ -389,6 +412,7 @@ class _HomePageState extends State<HomePage> {
           icon: Icons.person_pin_rounded,
           title: 'Danışman Bilgileri',
           lines: [advisorBody],
+          onDetail: () => _openDashboardPage(const ActiveStudyInfoPage()),
         ),
         const SizedBox(height: 10),
         _summaryCard(
@@ -396,6 +420,7 @@ class _HomePageState extends State<HomePage> {
           icon: Icons.workspace_premium_rounded,
           title: 'Öğrenim Bilgileri',
           lines: eduLines,
+          onDetail: () => _openDashboardPage(const ActiveStudyInfoPage()),
         ),
         const SizedBox(height: 10),
         _summaryCard(
@@ -406,7 +431,7 @@ class _HomePageState extends State<HomePage> {
             'Kayıt Tarihi: $regDate',
             'AGNO: $agno',
           ],
-          onDetail: () => _openAfterDrawer(const SemesterGpaPage()),
+          onDetail: () => _openDashboardPage(const SemesterGpaPage()),
         ),
       ],
     );

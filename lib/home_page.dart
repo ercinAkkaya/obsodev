@@ -463,14 +463,7 @@ class _HomePageState extends State<HomePage> {
         onDonemOrtalamalari: () => _openAfterDrawer(const SemesterGpaPage()),
         onNotListesi: () => _openAfterDrawer(const GradeListPage()),
         onDevamsizlik: () => _openAfterDrawer(const AttendanceStatusPage()),
-        onYokBasvurular: () => _openAfterDrawer(
-          PortalProfileTextPage(
-            title: 'Başvurular ve sonuçları',
-            emptyHint:
-                'Profil › «YÖK başvuru ve sonuç metni» alanını doldurduktan sonra Kaydet\'e basın.',
-            textOf: (p) => p.yokAppsInfo,
-          ),
-        ),
+        onYokBasvurular: () => _openAfterDrawer(const YokApplicationsPortalPage()),
         onDijitalKimlik: () => _openAfterDrawer(
           PortalProfileTextPage(
             title: 'Dijital kimliğim',
@@ -479,14 +472,7 @@ class _HomePageState extends State<HomePage> {
             textOf: (p) => p.digitalIdInfo,
           ),
         ),
-        onOsym: () => _openAfterDrawer(
-          PortalProfileTextPage(
-            title: 'ÖSYM sonuçları başvuruları',
-            emptyHint:
-                'Profil › «ÖSYM bilgisi» alanını doldurduktan sonra Kaydet\'e basın.',
-            textOf: (p) => p.osymInfo,
-          ),
-        ),
+        onOsym: () => _openAfterDrawer(const OsymExamsPortalPage()),
         onAktifDonem: () => _openAfterDrawer(const ActiveAcademicPeriodPage()),
         onAktifOgrenim: () => _openAfterDrawer(const ActiveStudyInfoPage()),
         onSchoolLogoTap: _pickSchoolLogoFromDrawer,

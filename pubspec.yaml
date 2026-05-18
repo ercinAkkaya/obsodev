@@ -39,6 +39,9 @@ dependencies:
   sqflite_common_ffi: ^2.3.7+1
   sqlite3_flutter_libs: ^0.5.42
   image_picker: ^1.2.2
+  file_picker: ^10.3.10
+  open_filex: ^4.7.0
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:

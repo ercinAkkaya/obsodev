@@ -150,6 +150,68 @@ class GradeRecord {
   }
 }
 
+/// ÖSYM / TYT-AYT vb. sınav satırı (profil JSON dizisi).
+class OsymExamRecord {
+  const OsymExamRecord({
+    required this.examName,
+    this.examDate = '',
+    this.score = '',
+    this.note = '',
+  });
+
+  final String examName;
+
+  /// Tarih serbest metin (örn. 13.06.2025).
+  final String examDate;
+
+  /// Puan / ham puan / net — serbest metin.
+  final String score;
+
+  final String note;
+
+  Map<String, Object?> toJson() => {
+        'name': examName,
+        'date': examDate,
+        'score': score,
+        if (note.isNotEmpty) 'note': note,
+      };
+
+  factory OsymExamRecord.fromJson(Map<String, dynamic> map) {
+    return OsymExamRecord(
+      examName: '${map['name'] ?? map['examName'] ?? map['title'] ?? ''}'.trim(),
+      examDate: '${map['date'] ?? map['examDate'] ?? ''}'.trim(),
+      score: '${map['score'] ?? map['not'] ?? map['puan'] ?? ''}'.trim(),
+      note: '${map['note'] ?? ''}'.trim(),
+    );
+  }
+}
+
+/// YÖK başvuruları için yerel kopyalanmış belge (PDF, görüntü vb.).
+class YokDocumentRecord {
+  const YokDocumentRecord({
+    required this.storedPath,
+    this.displayName = '',
+  });
+
+  /// [UserCredentialsRepository.credentialDirectory] altında kopya yolu.
+  final String storedPath;
+
+  /// Listede gösterilen kısa başlık; boşsa dosya adı kullanılır.
+  final String displayName;
+
+  Map<String, Object?> toJson() => {
+        'path': storedPath,
+        if (displayName.trim().isNotEmpty) 'label': displayName.trim(),
+      };
+
+  factory YokDocumentRecord.fromJson(Map<String, dynamic> map) {
+    return YokDocumentRecord(
+      storedPath: '${map['path'] ?? map['storedPath'] ?? ''}'.trim(),
+      displayName: '${map['label'] ?? map['displayName'] ?? ''}'.trim(),
+    );
+  }
+}
+
 /// JSON güvenli ayrıştırma yardımcıları.
 abstract final class AcademicJson {
   AcademicJson._();
@@ -176,6 +238,18 @@ abstract final class AcademicJson {
       _decodeList(raw, (m) => GradeRecord.fromJson(m));
 
   static String encodeGrades(List<GradeRecord> xs) =>
+      jsonEncode(xs.map((e) => e.toJson()).toList());
+
+  static List<OsymExamRecord> decodeOsymExams(String raw) =>
+      _decodeList(raw, (m) => OsymExamRecord.fromJson(m));
+
+  static String encodeOsymExams(List<OsymExamRecord> xs) =>
+      jsonEncode(xs.map((e) => e.toJson()).toList());
+
+  static List<YokDocumentRecord> decodeYokDocuments(String raw) =>
+      _decodeList(raw, (m) => YokDocumentRecord.fromJson(m));
+
+  static String encodeYokDocuments(List<YokDocumentRecord> xs) =>
       jsonEncode(xs.map((e) => e.toJson()).toList());
 
   static List<T> _decodeList<T>(

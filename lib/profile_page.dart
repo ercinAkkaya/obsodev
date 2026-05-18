@@ -215,7 +215,9 @@ class _ProfilePageState extends State<ProfilePage> {
       dashboardWarning: stored.dashboardWarning,
       digitalIdInfo: stored.digitalIdInfo,
       yokAppsInfo: stored.yokAppsInfo,
+      yokDocumentsJson: stored.yokDocumentsJson,
       osymInfo: stored.osymInfo,
+      osymExamsJson: stored.osymExamsJson,
     );
 
     setState(() => _saving = true);

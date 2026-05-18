@@ -12,9 +12,10 @@ import 'pages/course_registration_page.dart';
 import 'pages/drawer_portal_pages.dart';
 import 'pages/grade_list_page.dart';
 import 'pages/semester_gpa_page.dart';
+import 'profile_academic_page.dart';
 import 'profile_page.dart';
 
-/// Ana sayfa: üst çubukta dönem/yıl, ev + duyuru ikonları ve profil fotoğrafı.
+/// Ana sayfa: üst çubukta dönem/yıl, ev + zil ve profil fotoğrafı.
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.onLogout});
 
@@ -147,6 +148,18 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => ProfilePage(onLogout: widget.onLogout),
+      ),
+    );
+    if (!mounted) return;
+    await _refreshHeader();
+  }
+
+  /// Zil: eğitim / ÖBS / portal metinleri (dönüşte başlık yenilenir).
+  Future<void> _openAcademicFromBell() async {
+    HapticFeedback.lightImpact();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const ProfileAcademicPage(),
       ),
     );
     if (!mounted) return;
@@ -509,8 +522,16 @@ class _HomePageState extends State<HomePage> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 2),
-            child: ExcludeSemantics(
-              child: Badge(
+            child: IconButton(
+              tooltip: 'Duyurular',
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white.withValues(alpha: 0.55),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: _openAcademicFromBell,
+              icon: Badge(
                 backgroundColor: const Color(0xFFE53935),
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 label: Text(
@@ -522,13 +543,10 @@ class _HomePageState extends State<HomePage> {
                     height: 1,
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  child: Icon(
-                    Icons.campaign_outlined,
-                    color: Colors.white.withValues(alpha: 0.95),
-                    size: 22,
-                  ),
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white.withValues(alpha: 0.72),
+                  size: 24,
                 ),
               ),
             ),

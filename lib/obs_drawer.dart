@@ -139,7 +139,7 @@ class ObsNavigationDrawer extends StatelessWidget {
                       children: [
                         _navTile(context, 'Ders kayıt tarihi', onDersKayitTarihi),
                         _navTile(context, 'Dönem ortalamaları', onDonemOrtalamalari),
-                        _navTile(context, 'Not listesi', onNotListesi),
+                        _navTile(context, 'Not durumu', onNotListesi),
                         _navTile(context, 'Devamsızlık', onDevamsizlik),
                       ],
                     ),

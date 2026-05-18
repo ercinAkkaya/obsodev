@@ -39,7 +39,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
   List<CourseRecord> _courses = [];
   List<AttendanceRecord> _attendance = [];
   List<SemesterGpaRecord> _semesterGpas = [];
-  List<GradeRecord> _grades = [];
+  List<GradeTermSheet> _gradeSheets = [];
   List<OsymExamRecord> _osymExams = [];
   List<YokDocumentRecord> _yokDocuments = [];
 
@@ -76,7 +76,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       _courses = AcademicJson.decodeCourses(r.coursesJson);
       _attendance = AcademicJson.decodeAttendance(r.attendanceJson);
       _semesterGpas = AcademicJson.decodeSemesterGpas(r.semesterGpasJson);
-      _grades = AcademicJson.decodeGrades(r.gradesJson);
+      _gradeSheets = AcademicJson.decodeGradeSheets(r.gradesJson);
       _osymExams = AcademicJson.decodeOsymExams(r.osymExamsJson);
       _yokDocuments = AcademicJson.decodeYokDocuments(r.yokDocumentsJson);
     } on Object catch (_) {
@@ -99,7 +99,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       _courses = AcademicJson.decodeCourses(d.coursesJson);
       _attendance = AcademicJson.decodeAttendance(d.attendanceJson);
       _semesterGpas = AcademicJson.decodeSemesterGpas(d.semesterGpasJson);
-      _grades = AcademicJson.decodeGrades(d.gradesJson);
+      _gradeSheets = AcademicJson.decodeGradeSheets(d.gradesJson);
       _osymExams = AcademicJson.decodeOsymExams(d.osymExamsJson);
       _yokDocuments = AcademicJson.decodeYokDocuments(d.yokDocumentsJson);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +229,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       coursesJson: AcademicJson.encodeCourses(_courses),
       attendanceJson: AcademicJson.encodeAttendance(_attendance),
       semesterGpasJson: AcademicJson.encodeSemesterGpas(_semesterGpas),
-      gradesJson: AcademicJson.encodeGrades(_grades),
+      gradesJson: AcademicJson.encodeGradeSheets(_gradeSheets),
       academicTerm: _academicTerm.text.trim(),
       advisorInfo: _advisorInfo.text.trim(),
       registrationDate: _registrationDate.text.trim(),
@@ -299,17 +299,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
     );
   }
 
-  String _gradeCardSubtitle(GradeRecord g) {
-    final bits = <String>[
-      if (g.vizeGrade.trim().isNotEmpty) 'Vize: ${g.vizeGrade.trim()}',
-      if (g.finalGrade.trim().isNotEmpty) 'Final: ${g.finalGrade.trim()}',
-      if (g.butExam.trim().isNotEmpty) 'Büt: ${g.butExam.trim()}',
-      if (g.letterGrade.trim().isNotEmpty) 'Harf: ${g.letterGrade.trim().toUpperCase()}',
-      if (g.courseAkts != null) 'AKTS: ${g.courseAkts}',
-    ];
-    return bits.isEmpty ? 'Not satırı (vize / final / büt henüz girilmemiş).' : bits.join(' • ');
-  }
-
   Widget _mutedLine(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
@@ -346,12 +335,96 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
   }
 
   Future<void> _dialogGrade() async {
-    final r = await showDialog<GradeRecord?>(
+    final r = await showDialog<_GradeEntryResult?>(
       context: context,
-      builder: (ctx) => _GradeFormDialog(deco: _decoration),
+      builder: (ctx) => _GradeEntryDialog(
+        deco: _decoration,
+        defaultUniversity: _universityName.text.trim(),
+        defaultClassYear: _eduGrade.text.trim(),
+        defaultAcademicYear: _academicYear.text.trim(),
+        defaultTermSeason: _academicTerm.text.trim(),
+      ),
     );
     if (!mounted || r == null) return;
-    setState(() => _grades.add(r));
+    setState(() => _mergeGradeEntry(r));
+  }
+
+  void _mergeGradeEntry(_GradeEntryResult entry) {
+    final uni = entry.universityName.trim();
+    final cls = entry.classYearLabel.trim();
+    final period = entry.academicPeriod.trim();
+
+    var idx = _gradeSheets.indexWhere((s) {
+      return s.universityName.trim() == uni &&
+          s.classYearLabel.trim() == cls &&
+          s.academicPeriod.trim() == period;
+    });
+
+    if (idx < 0) {
+      if (_gradeSheets.length >= 8) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('En fazla 8 dönem çizelgesi eklenebilir.')),
+        );
+        return;
+      }
+      _gradeSheets.add(
+        GradeTermSheet(
+          universityName: uni,
+          classYearLabel: cls,
+          academicPeriod: period,
+          courses: [entry.course],
+        ),
+      );
+      return;
+    }
+
+    final sheet = _gradeSheets[idx];
+    _gradeSheets[idx] = GradeTermSheet(
+      universityName: sheet.universityName,
+      classYearLabel: sheet.classYearLabel,
+      semesterLabel: sheet.semesterLabel,
+      academicPeriod: sheet.academicPeriod,
+      courses: [...sheet.courses, entry.course],
+    );
+  }
+
+  String _gradeEntryCardTitle(GradeCourseRow c) => '${c.courseCode} · ${c.courseName}';
+
+  String _gradeEntryCardSubtitle(GradeTermSheet sheet, GradeCourseRow c) {
+    final bits = <String>[
+      if (sheet.universityName.trim().isNotEmpty) sheet.universityName.trim(),
+      if (sheet.classYearLabel.trim().isNotEmpty) sheet.classYearLabel.trim(),
+      if (sheet.academicPeriod.trim().isNotEmpty) sheet.academicPeriod.trim(),
+      ..._gradeCourseSubtitleParts(c),
+    ];
+    return bits.join(' • ');
+  }
+
+  List<String> _gradeCourseSubtitleParts(GradeCourseRow g) {
+    return [
+      if (g.vizeGrade.trim().isNotEmpty) 'Vize: ${g.vizeGrade.trim()}',
+      if (g.finalGrade.trim().isNotEmpty) 'Final: ${g.finalGrade.trim()}',
+      if (g.butExam.trim().isNotEmpty) 'Büt: ${g.butExam.trim()}',
+      if (g.averageGrade.trim().isNotEmpty) 'Not: ${g.averageGrade.trim()}',
+      if (g.letterGrade.trim().isNotEmpty) 'Harf: ${g.letterGrade.trim().toUpperCase()}',
+      if (g.passStatus.trim().isNotEmpty) g.passStatus.trim(),
+    ];
+  }
+
+  void _removeGradeEntry(int sheetIndex, int courseIndex) {
+    final sheet = _gradeSheets[sheetIndex];
+    final updated = [...sheet.courses]..removeAt(courseIndex);
+    if (updated.isEmpty) {
+      _gradeSheets.removeAt(sheetIndex);
+    } else {
+      _gradeSheets[sheetIndex] = GradeTermSheet(
+        universityName: sheet.universityName,
+        classYearLabel: sheet.classYearLabel,
+        semesterLabel: sheet.semesterLabel,
+        academicPeriod: sheet.academicPeriod,
+        courses: updated,
+      );
+    }
   }
 
   String _osymExamSubtitle(OsymExamRecord e) {
@@ -508,18 +581,25 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
             ),
           ),
         const SizedBox(height: 18),
-        _miniBar('Not listesi', _dialogGrade),
-        if (_grades.isEmpty)
-          _mutedLine('Kayıt yok.')
+        _miniBar('Not durumu', _dialogGrade),
+        _mutedLine(
+          'Üniversite, sınıf, dönem (yıl + Güz/Bahar/Yaz) ve ders notlarını tek seferde girin. Aynı dönemdeki dersler otomatik gruplanır.',
+        ),
+        if (_gradeSheets.isEmpty)
+          _mutedLine('Henüz not kaydı yok.')
         else
-          ...List.generate(
-            _grades.length,
-            (i) => _removeCard(
-              title: '${_grades[i].courseCode} · ${_grades[i].courseName}',
-              subtitle: _gradeCardSubtitle(_grades[i]),
-              onRemove: () => setState(() => _grades.removeAt(i)),
-            ),
-          ),
+          ...[
+            for (var si = 0; si < _gradeSheets.length; si++)
+              for (var ci = 0; ci < _gradeSheets[si].courses.length; ci++)
+                _removeCard(
+                  title: _gradeEntryCardTitle(_gradeSheets[si].courses[ci]),
+                  subtitle: _gradeEntryCardSubtitle(
+                    _gradeSheets[si],
+                    _gradeSheets[si].courses[ci],
+                  ),
+                  onRemove: () => setState(() => _removeGradeEntry(si, ci)),
+                ),
+          ],
       ],
     );
   }
@@ -1514,46 +1594,117 @@ class _OsymExamFormDialogState extends State<_OsymExamFormDialog> {
   }
 }
 
-class _GradeFormDialog extends StatefulWidget {
-  const _GradeFormDialog({required this.deco});
+class _GradeEntryResult {
+  const _GradeEntryResult({
+    required this.universityName,
+    required this.classYearLabel,
+    required this.academicPeriod,
+    required this.course,
+  });
 
-  final InputDecoration Function(String label) deco;
-
-  @override
-  State<_GradeFormDialog> createState() => _GradeFormDialogState();
+  final String universityName;
+  final String classYearLabel;
+  final String academicPeriod;
+  final GradeCourseRow course;
 }
 
-class _GradeFormDialogState extends State<_GradeFormDialog> {
+class _GradeEntryDialog extends StatefulWidget {
+  const _GradeEntryDialog({
+    required this.deco,
+    required this.defaultUniversity,
+    required this.defaultClassYear,
+    required this.defaultAcademicYear,
+    required this.defaultTermSeason,
+  });
+
+  final InputDecoration Function(String label) deco;
+  final String defaultUniversity;
+  final String defaultClassYear;
+  final String defaultAcademicYear;
+  final String defaultTermSeason;
+
+  @override
+  State<_GradeEntryDialog> createState() => _GradeEntryDialogState();
+}
+
+class _GradeEntryDialogState extends State<_GradeEntryDialog> {
+  late final TextEditingController _university;
+  late final TextEditingController _academicYear;
+  late final TextEditingController _termSeason;
+  late final TextEditingController _classYear;
   late final TextEditingController _code;
   late final TextEditingController _name;
   late final TextEditingController _vize;
   late final TextEditingController _finalNot;
   late final TextEditingController _but;
+  late final TextEditingController _average;
   late final TextEditingController _letter;
-  late final TextEditingController _akts;
+  late final TextEditingController _passStatus;
+
+  static const _classOptions = ['1. Sınıf', '2. Sınıf', '3. Sınıf', '4. Sınıf'];
+  static const _termSeasonOptions = ['Güz', 'Bahar', 'Yaz', 'Yıllık'];
+  static const _passOptions = ['Geçti', 'Kaldı', 'Geçti (Büt)'];
 
   @override
   void initState() {
     super.initState();
+    _university = TextEditingController(text: widget.defaultUniversity);
+    _academicYear = TextEditingController(text: widget.defaultAcademicYear);
+    _termSeason = TextEditingController(text: widget.defaultTermSeason);
+    _classYear = TextEditingController(text: widget.defaultClassYear);
     _code = TextEditingController();
     _name = TextEditingController();
     _vize = TextEditingController();
     _finalNot = TextEditingController();
     _but = TextEditingController();
+    _average = TextEditingController();
     _letter = TextEditingController();
-    _akts = TextEditingController();
+    _passStatus = TextEditingController();
   }
 
   @override
   void dispose() {
+    _university.dispose();
+    _academicYear.dispose();
+    _termSeason.dispose();
+    _classYear.dispose();
     _code.dispose();
     _name.dispose();
     _vize.dispose();
     _finalNot.dispose();
     _but.dispose();
+    _average.dispose();
     _letter.dispose();
-    _akts.dispose();
+    _passStatus.dispose();
     super.dispose();
+  }
+
+  Widget _chips(List<String> options, TextEditingController ctrl) {
+    final current = ctrl.text.trim();
+    const accent = Color(0xFF455A64);
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final o in options)
+          ChoiceChip(
+            label: Text(o),
+            selected: current == o,
+            showCheckmark: false,
+            visualDensity: VisualDensity.compact,
+            selectedColor: accent.withValues(alpha: 0.22),
+            labelStyle: TextStyle(
+              fontSize: 12.5,
+              color: accent,
+              fontWeight: current == o ? FontWeight.w800 : FontWeight.w500,
+            ),
+            side: BorderSide(
+              color: current == o ? accent : accent.withValues(alpha: 0.35),
+            ),
+            onSelected: (_) => setState(() => ctrl.text = o),
+          ),
+      ],
+    );
   }
 
   void _submit() {
@@ -1562,20 +1713,42 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
     final nn = _name.text.trim();
     if (cc.isEmpty || nn.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ders kodu ve adı zorunludur.')),
+        const SnackBar(content: Text('Ders kodu ve ders adı zorunludur.')),
       );
       return;
     }
-    final ak = _akts.text.trim();
+    final cls = _classYear.text.trim();
+    if (cls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sınıf seçin.')),
+      );
+      return;
+    }
+    final year = _academicYear.text.trim();
+    final season = _termSeason.text.trim();
+    if (year.isEmpty && season.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dönem için yıl veya Güz / Bahar / Yaz seçin.')),
+      );
+      return;
+    }
+    final period = [year, season].where((s) => s.isNotEmpty).join(' ');
+
     Navigator.of(context).pop(
-      GradeRecord(
-        courseCode: cc,
-        courseName: nn,
-        letterGrade: _letter.text.trim(),
-        courseAkts: ak.isEmpty ? null : int.tryParse(ak),
-        vizeGrade: _vize.text.trim(),
-        finalGrade: _finalNot.text.trim(),
-        butExam: _but.text.trim(),
+      _GradeEntryResult(
+        universityName: _university.text.trim(),
+        classYearLabel: cls,
+        academicPeriod: period,
+        course: GradeCourseRow(
+          courseCode: cc,
+          courseName: nn,
+          vizeGrade: _vize.text.trim(),
+          finalGrade: _finalNot.text.trim(),
+          butExam: _but.text.trim(),
+          averageGrade: _average.text.trim(),
+          letterGrade: _letter.text.trim(),
+          passStatus: _passStatus.text.trim(),
+        ),
       ),
     );
   }
@@ -1583,43 +1756,71 @@ class _GradeFormDialogState extends State<_GradeFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Not satırı'),
+      title: const Text('Not ekle'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _university,
+              decoration: widget.deco('Üniversite adı'),
+            ),
+            const SizedBox(height: 16),
+            Text('Sınıf', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 6),
+            _chips(_classOptions, _classYear),
+            const SizedBox(height: 16),
+            Text('Dönem', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _academicYear,
+              decoration: widget.deco('Eğitim-öğretim yılı').copyWith(
+                hintText: '2025-2026',
+              ),
+            ),
+            const SizedBox(height: 8),
+            _chips(_termSeasonOptions, _termSeason),
+            const Divider(height: 28),
             TextField(controller: _code, decoration: widget.deco('Ders kodu')),
             const SizedBox(height: 12),
             TextField(controller: _name, decoration: widget.deco('Ders adı')),
             const SizedBox(height: 12),
             TextField(
               controller: _vize,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: widget.deco('Vize notu'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _finalNot,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: widget.deco('Final notu'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _but,
+              decoration: widget.deco('Büt notu (varsa)'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _average,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: widget.deco('Büt notu'),
+              decoration: widget.deco('Ortalama not'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _letter,
-              decoration:
-                  widget.deco('Harf notu').copyWith(hintText: 'İsteğe bağlı (örn. BA)'),
+              decoration: widget.deco('Harf notu').copyWith(
+                hintText: 'CC, FD, BB…',
+              ),
             ),
             const SizedBox(height: 12),
+            Text('Geçti / kaldı', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 6),
+            _chips(_passOptions, _passStatus),
+            const SizedBox(height: 8),
             TextField(
-              controller: _akts,
-              keyboardType: TextInputType.number,
-              decoration: widget.deco('AKTS (isteğe bağlı)'),
+              controller: _passStatus,
+              decoration: widget.deco('Durum'),
             ),
           ],
         ),

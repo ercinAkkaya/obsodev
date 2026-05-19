@@ -15,8 +15,25 @@ class GradeListPage extends StatefulWidget {
   State<GradeListPage> createState() => _GradeListPageState();
 }
 
+/// Aynı dönem sekmesi (örn. «1. Sınıf Güz») — farklı üniversiteler alt bloklar.
+typedef _GradePeriodGroup = ({String label, List<GradeTermSheet> sheets});
+
+List<_GradePeriodGroup> _groupGradeSheetsByPeriod(List<GradeTermSheet> sheets) {
+  final map = <String, List<GradeTermSheet>>{};
+  final order = <String>[];
+  for (final s in sheets) {
+    final key = s.selectorLabel;
+    if (!map.containsKey(key)) {
+      order.add(key);
+      map[key] = [];
+    }
+    map[key]!.add(s);
+  }
+  return [for (final k in order) (label: k, sheets: map[k]!)];
+}
+
 class _GradeListPageState extends State<GradeListPage> {
-  int _selectedSheetIndex = 0;
+  int _selectedGroupIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -49,18 +66,16 @@ class _GradeListPageState extends State<GradeListPage> {
           );
         }
 
-        if (_selectedSheetIndex >= sheets.length) {
+        final groups = _groupGradeSheetsByPeriod(sheets);
+
+        if (_selectedGroupIndex >= groups.length) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _selectedSheetIndex = 0);
+            if (mounted) setState(() => _selectedGroupIndex = 0);
           });
         }
 
-        final safeIndex = _selectedSheetIndex.clamp(0, sheets.length - 1);
-        final sheet = sheets[safeIndex];
-        final uni = sheet.universityName.trim().isNotEmpty
-            ? sheet.universityName.trim()
-            : profile.universityName.trim();
-        final periodDetail = sheet.academicPeriod.trim();
+        final safeIndex = _selectedGroupIndex.clamp(0, groups.length - 1);
+        final group = groups[safeIndex];
 
         return Scaffold(
           appBar: AppBar(
@@ -74,53 +89,25 @@ class _GradeListPageState extends State<GradeListPage> {
             children: [
               const _NotDurumuTabStrip(),
               _PeriodTabBar(
-                sheets: sheets,
+                groups: groups,
                 selectedIndex: safeIndex,
-                onSelected: (i) => setState(() => _selectedSheetIndex = i),
+                onSelected: (i) => setState(() => _selectedGroupIndex = i),
               ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(6, 4, 6, 16),
                   children: [
-                    if (uni.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
-                        child: Text(
-                          uni,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: Colors.grey.shade900,
-                          ),
-                        ),
+                    for (var bi = 0; bi < group.sheets.length; bi++) ...[
+                      if (bi > 0) ...[
+                        const SizedBox(height: 16),
+                        Divider(height: 1, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                      ],
+                      _UniversityGradeBlock(
+                        sheet: group.sheets[bi],
+                        fallbackUniversity: profile.universityName.trim(),
                       ),
                     ],
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            sheet.selectorLabel,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          if (periodDetail.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              periodDetail,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    GradeStatusTable(courses: sheet.courses),
                   ],
                 ),
               ),
@@ -131,6 +118,69 @@ class _GradeListPageState extends State<GradeListPage> {
     );
   }
 
+}
+
+/// Tek üniversitenin dönem not tablosu.
+class _UniversityGradeBlock extends StatelessWidget {
+  const _UniversityGradeBlock({
+    required this.sheet,
+    required this.fallbackUniversity,
+  });
+
+  final GradeTermSheet sheet;
+  final String fallbackUniversity;
+
+  @override
+  Widget build(BuildContext context) {
+    final uni = sheet.universityName.trim().isNotEmpty
+        ? sheet.universityName.trim()
+        : fallbackUniversity;
+    final periodDetail = sheet.academicPeriod.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (uni.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
+            child: Text(
+              uni,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Colors.grey.shade900,
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                sheet.selectorLabel,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              if (periodDetail.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  periodDetail,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        GradeStatusTable(courses: sheet.courses),
+      ],
+    );
+  }
 }
 
 /// OBS üst sekmesi görünümü.
@@ -171,12 +221,12 @@ class _NotDurumuTabStrip extends StatelessWidget {
 /// Dönem seçimi — «1. Sınıf Güz», «2. Sınıf Bahar» vb.
 class _PeriodTabBar extends StatelessWidget {
   const _PeriodTabBar({
-    required this.sheets,
+    required this.groups,
     required this.selectedIndex,
     required this.onSelected,
   });
 
-  final List<GradeTermSheet> sheets;
+  final List<_GradePeriodGroup> groups;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
@@ -196,10 +246,10 @@ class _PeriodTabBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Row(
             children: [
-              for (var i = 0; i < sheets.length; i++) ...[
+              for (var i = 0; i < groups.length; i++) ...[
                 if (i > 0) const SizedBox(width: 6),
                 _PeriodTab(
-                  label: sheets[i].selectorLabel,
+                  label: groups[i].label,
                   selected: i == selectedIndex,
                   onTap: () => onSelected(i),
                 ),

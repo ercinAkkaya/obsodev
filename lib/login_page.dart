@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               )
                             : Text(
-                                'YOK OBS ile giriş',
+                                'YÖK OBS ile giriş',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: r.d(15),

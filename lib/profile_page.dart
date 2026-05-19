@@ -7,8 +7,7 @@ import 'package:path/path.dart' as p;
 
 import 'data/user_credentials_repository.dart';
 
-/// Beyaz arayüz; yalnızca kişisel bilgiler ve profil fotoğrafı.
-/// Kimlik bilgileri (ad, T.C., şifre, fotoğraf). Akademik veri girişi sol menü logosundan açılır.
+/// Kişisel bilgiler, T.C., şifre ve profil fotoğrafı. Akademik veri sol menü logosundan.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.onLogout});
 
@@ -29,7 +28,6 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _profilePhotoPath;
 
   static final _digits11 = RegExp(r'^\d{11}$');
-
   static final Color _label = Colors.black.withValues(alpha: 0.75);
   static const Color _saveBtn = Color(0xFF455A64);
 
@@ -184,7 +182,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       return;
     }
-
     UserProfile stored;
     try {
       stored = await UserCredentialsRepository.instance.getStored();
@@ -296,42 +293,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.badge_outlined, color: Colors.grey.shade700),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Hesap bilgileri',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: Colors.grey.shade900,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Varsayılan giriş: ${UserCredentialsRepository.defaultTc} / ${UserCredentialsRepository.defaultPassword}',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   _sectionTitle('Profil fotoğrafı'),
                   const SizedBox(height: 10),
                   Center(
@@ -410,12 +371,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     maxLength: 11,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: _decoration('T.C. Kimlik No'),
+                    textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _pwd,
                     obscureText: true,
                     decoration: _decoration('Şifre'),
+                    textInputAction: TextInputAction.done,
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

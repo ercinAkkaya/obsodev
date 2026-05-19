@@ -23,7 +23,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('YÖKSİS ile giriş'), findsOneWidget);
+    expect(find.text('YÖK OBS ile giriş'), findsOneWidget);
     expect(find.text('e-DEVLET ile Giriş'), findsOneWidget);
     expect(find.text('Kimlik Numaranızı Giriniz'), findsOneWidget);
     expect(find.text('Şifrenizi Giriniz'), findsOneWidget);

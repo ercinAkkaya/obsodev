@@ -207,30 +207,91 @@ String _dash(String s) {
   return t.isEmpty ? '—' : t;
 }
 
-Widget _infoRow(BuildContext context, String label, String value) {
+const Color _kInfoTableHeader = Color(0xFF5C5C5C);
+const Color _kInfoTableBorder = Color(0xFFD0D0D0);
+
+/// Profil özet alanları — etiket | değer tablosu.
+Widget _profileInfoTable(List<({String label, String value})> rows) {
+  if (rows.isEmpty) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Text(
+          '—',
+          style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+        ),
+      ),
+    );
+  }
+
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+    child: Table(
+      columnWidths: const {
+        0: FixedColumnWidth(132),
+        1: FlexColumnWidth(),
+      },
+      border: TableBorder.all(color: _kInfoTableBorder, width: 1),
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
-        SizedBox(
-          width: 150,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: Colors.grey.shade800,
+        TableRow(
+          decoration: const BoxDecoration(color: _kInfoTableHeader),
+          children: [
+            _infoTableHeaderCell('Alan'),
+            _infoTableHeaderCell('Bilgi'),
+          ],
+        ),
+        for (var i = 0; i < rows.length; i++)
+          TableRow(
+            decoration: BoxDecoration(
+              color: i.isOdd ? const Color(0xFFF5F5F5) : Colors.white,
             ),
+            children: [
+              _infoTableLabelCell(rows[i].label),
+              _infoTableValueCell(_dash(rows[i].value)),
+            ],
           ),
-        ),
-        Expanded(
-          child: SelectableText(
-            value,
-            style: TextStyle(fontSize: 14, height: 1.35, color: Colors.grey.shade900),
-          ),
-        ),
       ],
+    ),
+  );
+}
+
+Widget _infoTableHeaderCell(String text) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+        fontSize: 11.5,
+        height: 1.15,
+      ),
+    ),
+  );
+}
+
+Widget _infoTableLabelCell(String text) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+        height: 1.25,
+        color: Colors.grey.shade800,
+      ),
+    ),
+  );
+}
+
+Widget _infoTableValueCell(String text) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    child: SelectableText(
+      text,
+      style: TextStyle(fontSize: 12.5, height: 1.3, color: Colors.grey.shade900),
     ),
   );
 }
@@ -653,14 +714,26 @@ class ActiveAcademicPeriodPage extends StatelessWidget {
         return Scaffold(
           appBar: const _ActiveScaffoldTitle(title: Text('Aktif akademik dönem bilgileri')),
           body: ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
-              _infoRow(context, 'Üniversite', _dash(p.universityName)),
-              _infoRow(context, 'Aktif eğitim-öğretim yılı', _dash(p.academicYear)),
-              _infoRow(context, 'Yarıyıl / alt dönem', _dash(p.academicTerm)),
-              _infoRow(context, 'Kayıt tarihi', _dash(p.registrationDate)),
-              _infoRow(context, 'Danışman', _dash(p.advisorInfo)),
-              _infoRow(context, 'Genel AGNO', _dash(p.overallGpa)),
+              if (p.universityName.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    p.universityName.trim(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: Colors.grey.shade900,
+                    ),
+                  ),
+                ),
+              _profileInfoTable([
+                (label: 'Eğitim-öğretim yılı', value: p.academicYear),
+                (label: 'Yarıyıl / dönem', value: p.academicTerm),
+                (label: 'Kayıt tarihi', value: p.registrationDate),
+                (label: 'Danışman', value: p.advisorInfo),
+                (label: 'Genel AGNO', value: p.overallGpa),
+              ]),
             ],
           ),
         );
@@ -688,16 +761,28 @@ class ActiveStudyInfoPage extends StatelessWidget {
         return Scaffold(
           appBar: const _ActiveScaffoldTitle(title: Text('Aktif öğrenim bilgileri')),
           body: ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
-              _infoRow(context, 'Üniversite', _dash(p.universityName)),
-              _infoRow(context, 'Fakülte / birim', _dash(p.eduFaculty)),
-              _infoRow(context, 'Bölüm / program', _dash(p.eduDepartment)),
-              _infoRow(context, 'Sınıf düzeyi', _dash(p.eduGrade)),
-              _infoRow(context, 'Aktif eğitim-öğretim yılı', _dash(p.academicYear)),
-              _infoRow(context, 'Yarıyıl / alt dönem', _dash(p.academicTerm)),
-              _infoRow(context, 'Danışman', _dash(p.advisorInfo)),
-              _infoRow(context, 'Kayıt tarihi', _dash(p.registrationDate)),
+              if (p.universityName.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: Text(
+                    p.universityName.trim(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: Colors.grey.shade900,
+                    ),
+                  ),
+                ),
+              _profileInfoTable([
+                (label: 'Fakülte / birim', value: p.eduFaculty),
+                (label: 'Bölüm / program', value: p.eduDepartment),
+                (label: 'Sınıf', value: p.eduGrade),
+                (label: 'Eğitim-öğretim yılı', value: p.academicYear),
+                (label: 'Yarıyıl / dönem', value: p.academicTerm),
+                (label: 'Danışman', value: p.advisorInfo),
+                (label: 'Kayıt tarihi', value: p.registrationDate),
+              ]),
             ],
           ),
         );

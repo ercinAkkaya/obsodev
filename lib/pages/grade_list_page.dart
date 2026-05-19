@@ -45,7 +45,7 @@ class _GradeListPageState extends State<GradeListPage> {
               surfaceTintColor: Colors.transparent,
               title: const Text('Not durumu'),
             ),
-            body: _emptyHint(context),
+            body: const SizedBox.shrink(),
           );
         }
 
@@ -131,31 +131,6 @@ class _GradeListPageState extends State<GradeListPage> {
     );
   }
 
-  Widget _emptyHint(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.fact_check_outlined, size: 56, color: Colors.grey.shade500),
-            const SizedBox(height: 16),
-            Text(
-              'Not çizelgesi görünmüyor',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Profil (zil) › «Not durumu» bölümünden not ekleyip Kaydet\'e basın.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700, height: 1.38),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// OBS üst sekmesi görünümü.

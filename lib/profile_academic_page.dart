@@ -4,11 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 
 import 'data/academic_records.dart';
 import 'data/user_credentials_repository.dart';
+import 'widgets/pdf_inline_preview.dart';
 
 /// Eğitim, menü metinleri, okul logosu ve ÖBS listeleri (ders / devamsızlık / not).
 class ProfileAcademicPage extends StatefulWidget {
@@ -29,9 +29,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
   final _registrationDate = TextEditingController();
   final _overallGpa = TextEditingController();
   final _dashboardWarning = TextEditingController();
-  final _digitalIdInfo = TextEditingController();
-  final _yokAppsInfo = TextEditingController();
-  final _osymInfo = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _schoolLogoPath;
@@ -40,8 +37,9 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
   List<AttendanceRecord> _attendance = [];
   List<SemesterGpaRecord> _semesterGpas = [];
   List<GradeTermSheet> _gradeSheets = [];
-  List<OsymExamRecord> _osymExams = [];
   List<YokDocumentRecord> _yokDocuments = [];
+  List<YokDocumentRecord> _osymDocuments = [];
+  List<YokDocumentRecord> _digitalDocuments = [];
 
   /// Boş olabilir; dolu ise `YYYY-YYYY` (örn. 2025-2026).
   static final _yearRange = RegExp(r'^\d{4}-\d{4}$');
@@ -69,16 +67,14 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       _registrationDate.text = r.registrationDate;
       _overallGpa.text = r.overallGpa;
       _dashboardWarning.text = r.dashboardWarning;
-      _digitalIdInfo.text = r.digitalIdInfo;
-      _yokAppsInfo.text = r.yokAppsInfo;
-      _osymInfo.text = r.osymInfo;
       _schoolLogoPath = r.schoolLogoPath;
       _courses = AcademicJson.decodeCourses(r.coursesJson);
       _attendance = AcademicJson.decodeAttendance(r.attendanceJson);
       _semesterGpas = AcademicJson.decodeSemesterGpas(r.semesterGpasJson);
       _gradeSheets = AcademicJson.decodeGradeSheets(r.gradesJson);
-      _osymExams = AcademicJson.decodeOsymExams(r.osymExamsJson);
       _yokDocuments = AcademicJson.decodeYokDocuments(r.yokDocumentsJson);
+      _osymDocuments = AcademicJson.decodeYokDocuments(r.osymDocumentsJson);
+      _digitalDocuments = AcademicJson.decodeYokDocuments(r.digitalIdDocumentsJson);
     } on Object catch (_) {
       if (!mounted) return;
       final d = UserCredentialsRepository.instance.defaultProfile;
@@ -92,16 +88,14 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       _registrationDate.text = d.registrationDate;
       _overallGpa.text = d.overallGpa;
       _dashboardWarning.text = d.dashboardWarning;
-      _digitalIdInfo.text = d.digitalIdInfo;
-      _yokAppsInfo.text = d.yokAppsInfo;
-      _osymInfo.text = d.osymInfo;
       _schoolLogoPath = d.schoolLogoPath;
       _courses = AcademicJson.decodeCourses(d.coursesJson);
       _attendance = AcademicJson.decodeAttendance(d.attendanceJson);
       _semesterGpas = AcademicJson.decodeSemesterGpas(d.semesterGpasJson);
       _gradeSheets = AcademicJson.decodeGradeSheets(d.gradesJson);
-      _osymExams = AcademicJson.decodeOsymExams(d.osymExamsJson);
       _yokDocuments = AcademicJson.decodeYokDocuments(d.yokDocumentsJson);
+      _osymDocuments = AcademicJson.decodeYokDocuments(d.osymDocumentsJson);
+      _digitalDocuments = AcademicJson.decodeYokDocuments(d.digitalIdDocumentsJson);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -187,9 +181,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
     _registrationDate.dispose();
     _overallGpa.dispose();
     _dashboardWarning.dispose();
-    _digitalIdInfo.dispose();
-    _yokAppsInfo.dispose();
-    _osymInfo.dispose();
     super.dispose();
   }
 
@@ -235,11 +226,13 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       registrationDate: _registrationDate.text.trim(),
       overallGpa: _overallGpa.text.trim(),
       dashboardWarning: _dashboardWarning.text.trim(),
-      digitalIdInfo: _digitalIdInfo.text.trim(),
-      yokAppsInfo: _yokAppsInfo.text.trim(),
-      osymInfo: _osymInfo.text.trim(),
-      osymExamsJson: AcademicJson.encodeOsymExams(_osymExams),
+      digitalIdInfo: '',
+      yokAppsInfo: '',
+      osymInfo: '',
+      osymExamsJson: '[]',
       yokDocumentsJson: AcademicJson.encodeYokDocuments(_yokDocuments),
+      osymDocumentsJson: AcademicJson.encodeYokDocuments(_osymDocuments),
+      digitalIdDocumentsJson: AcademicJson.encodeYokDocuments(_digitalDocuments),
     );
 
     setState(() => _saving = true);
@@ -298,14 +291,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       ],
     );
   }
-
-  Widget _mutedLine(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(
-          text,
-          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.35),
-        ),
-      );
 
   Future<void> _dialogCourse() async {
     final r = await showDialog<CourseRecord?>(
@@ -427,58 +412,42 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
     }
   }
 
-  String _osymExamSubtitle(OsymExamRecord e) {
-    final bits = <String>[
-      if (e.examDate.trim().isNotEmpty) 'Tarih: ${e.examDate.trim()}',
-      if (e.score.trim().isNotEmpty) 'Puan / not: ${e.score.trim()}',
-      if (e.note.trim().isNotEmpty) e.note.trim(),
-    ];
-    return bits.isEmpty ? 'Tarih ve puan ekleyebilirsiniz.' : bits.join(' • ');
-  }
-
-  Future<void> _dialogOsymExam() async {
-    final r = await showDialog<OsymExamRecord?>(
-      context: context,
-      builder: (ctx) => _OsymExamFormDialog(deco: _decoration),
-    );
-    if (!mounted || r == null) return;
-    setState(() => _osymExams.add(r));
-  }
-
-  String _yokDocTitle(YokDocumentRecord r) {
-    final n = r.displayName.trim();
-    if (n.isNotEmpty) return n;
-    final path = r.storedPath.trim();
-    if (path.isEmpty) return 'Belge';
-    return p.basename(path);
-  }
-
-  String _yokDocSubtitle(YokDocumentRecord r) {
-    final path = r.storedPath.trim();
-    if (path.isEmpty) return 'Geçersiz kayıt';
-    final ext = p.extension(path);
-    final shortExt = ext.isEmpty ? 'dosya' : ext.replaceFirst('.', '').toUpperCase();
-    if (!File(path).existsSync()) {
-      return '$shortExt • dosya bulunamadı (silip yeniden ekleyin)';
+  Future<void> _pickPdfDocument(
+    List<YokDocumentRecord> bucket,
+    String folder,
+    int maxCount,
+  ) async {
+    if (bucket.length >= maxCount) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('En fazla $maxCount PDF eklenebilir.')),
+      );
+      return;
     }
-    return '$shortExt • ${p.basename(path)}';
-  }
-
-  Future<void> _pickYokDocument() async {
     try {
       final res = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
         withData: true,
       );
       if (!mounted || res == null || res.files.isEmpty) return;
       final plat = res.files.single;
+      var name = plat.name.trim();
+      if (name.isEmpty) name = 'belge.pdf';
+      if (!name.toLowerCase().endsWith('.pdf')) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Yalnızca PDF dosyası seçilebilir.')),
+        );
+        return;
+      }
       var bytes = plat.bytes;
       if (bytes == null || bytes.isEmpty) {
         final sp = plat.path;
         if (sp == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Dosya okunamadı — tekrar deneyin.')),
+              const SnackBar(content: Text('Dosya okunamadı.')),
             );
           }
           return;
@@ -486,63 +455,111 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
         bytes = await File(sp).readAsBytes();
       }
       final dir = await UserCredentialsRepository.instance.credentialDirectory;
-      final sub = Directory(p.join(dir.path, 'yok_docs'));
+      final sub = Directory(p.join(dir.path, folder));
       if (!await sub.exists()) await sub.create(recursive: true);
-      var orig = plat.name.trim();
-      if (orig.isEmpty) orig = 'belge';
-      final safe = orig.replaceAll(RegExp(r'[/\\:?*"<>|]'), '_');
-      final dest = p.join(sub.path, 'yok_${DateTime.now().millisecondsSinceEpoch}_$safe');
+      final safe = name.replaceAll(RegExp(r'[/\\:?*"<>|]'), '_');
+      final dest = p.join(sub.path, '${DateTime.now().millisecondsSinceEpoch}_$safe');
       await File(dest).writeAsBytes(bytes);
-      final label = p.basenameWithoutExtension(safe);
       setState(() {
-        _yokDocuments.add(
-          YokDocumentRecord(storedPath: dest, displayName: label),
-        );
+        bucket.add(YokDocumentRecord(storedPath: dest));
       });
     } on Object catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Belge eklenemedi.')),
+        const SnackBar(content: Text('PDF eklenemedi.')),
       );
     }
   }
 
-  Future<void> _openYokDocument(YokDocumentRecord r) async {
-    final fp = r.storedPath.trim();
-    if (fp.isEmpty || !mounted) return;
-    if (!File(fp).existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dosya bulunamadı.')),
-      );
-      return;
-    }
-    final res = await OpenFilex.open(fp);
-    if (!mounted || res.type == ResultType.done) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(res.message)),
-    );
-  }
-
-  Future<void> _removeYokDocumentAt(int i) async {
-    if (i < 0 || i >= _yokDocuments.length) return;
-    final path = _yokDocuments[i].storedPath.trim();
+  Future<void> _removeDocumentAt(List<YokDocumentRecord> bucket, int i) async {
+    if (i < 0 || i >= bucket.length) return;
+    final path = bucket[i].storedPath.trim();
     try {
       final f = File(path);
       if (await f.exists()) await f.delete();
     } on Object catch (_) {}
-    setState(() => _yokDocuments.removeAt(i));
+    setState(() => bucket.removeAt(i));
+  }
+
+  Widget _pdfDocumentsBlock({
+    required String title,
+    required int maxCount,
+    required List<YokDocumentRecord> docs,
+    required VoidCallback onAdd,
+    required void Function(int index) onRemove,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: _label,
+                ),
+              ),
+            ),
+            if (docs.length < maxCount)
+              TextButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                label: const Text('PDF ekle'),
+              ),
+          ],
+        ),
+        if (docs.isEmpty) const SizedBox(height: 4)
+        else
+          ...List.generate(docs.length, (i) {
+            final path = docs[i].storedPath.trim();
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ColoredBox(
+                      color: Colors.white,
+                      child: PdfInlinePreview(
+                        key: ValueKey<String>(path),
+                        filePath: path,
+                        height: 220,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Material(
+                      color: Colors.black54,
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                        onPressed: () => onRemove(i),
+                        tooltip: 'Kaldır',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
   }
 
   Widget _obsListsContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _formHint(
-          'Çekmedeki «Ders ve genel işlemler» ve OBS sayfaları bu kayıtlarla dolar. ÖSYM ayrı bölümde. Kaydetmeyi unutmayın.',
-        ),
         _miniBar('Ders kayıt bilgileri', _dialogCourse),
         if (_courses.isEmpty)
-          _mutedLine('Henüz ders yok.')
+          const SizedBox.shrink()
         else
           ...List.generate(
             _courses.length,
@@ -556,7 +573,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
         const SizedBox(height: 18),
         _miniBar('Devamsızlık kayıtları', _dialogAttendance),
         if (_attendance.isEmpty)
-          _mutedLine('Kayıt yok.')
+          const SizedBox.shrink()
         else
           ...List.generate(
             _attendance.length,
@@ -570,7 +587,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
         const SizedBox(height: 18),
         _miniBar('Dönem ortalamaları', _dialogSemesterGpa),
         if (_semesterGpas.isEmpty)
-          _mutedLine('Kayıt yok.')
+          const SizedBox.shrink()
         else
           ...List.generate(
             _semesterGpas.length,
@@ -582,11 +599,8 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
           ),
         const SizedBox(height: 18),
         _miniBar('Not durumu', _dialogGrade),
-        _mutedLine(
-          'Üniversite, sınıf, dönem (yıl + Güz/Bahar/Yaz) ve ders notlarını tek seferde girin. Aynı dönemdeki dersler otomatik gruplanır.',
-        ),
         if (_gradeSheets.isEmpty)
-          _mutedLine('Henüz not kaydı yok.')
+          const SizedBox.shrink()
         else
           ...[
             for (var si = 0; si < _gradeSheets.length; si++)
@@ -713,18 +727,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
         ),
       );
 
-  Widget _formHint(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 12.5,
-            height: 1.4,
-            color: Colors.grey.shade700,
-          ),
-        ),
-      );
-
   InputDecoration _educationField(String label, {String? helper}) {
     final cyan = Colors.cyan.shade900;
     return _decoration(label).copyWith(
@@ -764,7 +766,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
       if (t.isNotEmpty) t,
     ];
     final line =
-        bits.isEmpty ? 'Henüz doldurulmadı — alanları kaydettiğinizde burada özetlenir.' : bits.join(' · ');
+        bits.isEmpty ? '—' : bits.join(' · ');
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -842,13 +844,8 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
 
   /// Aktif yıl, sınıf, yarıyıl, üniversite ve birim.
   Widget _educationPanel() {
-    const cardSub =
-        'Buradaki «aktif» değerler, ana sayfa üst çubuğu ve «Aktif akademik dönem / öğrenim bilgileri» '
-        'kartlarında kullanılır. Sınıf ile yarıyılı birlikte düşünün (örn. 2. sınıf + Güz). '
-        'Üniversite adı sol menü başlığında görünür.';
     return _profileSectionCard(
       title: 'Aktif öğrenim bilgileri',
-      subtitle: cardSub,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -866,10 +863,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
           ),
           const SizedBox(height: 16),
           _panelSubheading('Sınıf düzeyi (lisans / önlisans)'),
-          _formHint(
-            'Önce hazır seçeneklerden dokunabilir, gerekirse kutuyu kendiniz düzenlersiniz '
-            '(örn. «1. Sınıf (İÖ)», «3. Sınıf»).',
-          ),
           _quickChips(
             options: _gradeQuickOptions,
             current: _eduGrade.text.trim(),
@@ -889,9 +882,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
           ),
           const SizedBox(height: 16),
           _panelSubheading('Yarıyıl / alt dönem'),
-          _formHint(
-            'Güz, bahar veya yaz dönemi; sınıf alanıyla birlikte «1. sınıf güz» gibi düşünebilirsiniz.',
-          ),
           _quickChips(
             options: _termQuickOptions,
             current: _academicTerm.text.trim(),
@@ -915,9 +905,6 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
           Divider(height: 1, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           _panelSubheading('Üniversite ve birim'),
-          _formHint(
-            'Üniversite adı sol menünün üst başlığında gösterilir. Fakülte ve bölüm öğrenim kartlarında yer alır.',
-          ),
           TextField(
             controller: _universityName,
             textCapitalization: TextCapitalization.words,
@@ -954,7 +941,7 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Eğitim ve akademik bilgiler'),
+        title: const Text('Veri girişi'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         surfaceTintColor: Colors.transparent,
@@ -971,33 +958,9 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _profileSectionCard(
-                    title: 'Bu sayfa hakkında',
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.grey.shade700),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Öğrenim bilgileri, menü metinleri, okul logosu ve ÖBS listeleri burada. '
-                            'İsim, T.C., şifre ve fotoğraf için Profil (sağ üst avatar). '
-                            'Bu ekrana ana sayfadaki zil ile de gelirsiniz.',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: Colors.grey.shade700,
-                              height: 1.38,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   _educationPanel(),
                   _profileSectionCard(
                     title: 'Ana sayfa özeti (OBS)',
-                    subtitle:
-                        'Danışman, kayıt tarihi ve AGNO ana ekrandaki kartlarda kullanılır; öğrenim alanları yukarıdaki aktif bilgiler kartındadır.',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1044,101 +1007,38 @@ class _ProfileAcademicPageState extends State<ProfileAcademicPage> {
                     ),
                   ),
                   _profileSectionCard(
-                    title: 'Menü, YÖK ve ÖSYM',
-                    subtitle:
-                        'Dijital kimlik ile YÖK metni çekmede görünür. İsterseniz YÖK için belge ekleyin; sınavlar ayrı «ÖSYM» listesidir.',
+                    title: 'Belgeler (PDF)',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextField(
-                          controller: _digitalIdInfo,
-                          textCapitalization: TextCapitalization.sentences,
-                          minLines: 3,
-                          maxLines: 6,
-                          decoration: _decoration('Dijital kimlik bilgisi'),
+                        _pdfDocumentsBlock(
+                          title: 'YÖK (en fazla 4)',
+                          maxCount: 4,
+                          docs: _yokDocuments,
+                          onAdd: () => _pickPdfDocument(_yokDocuments, 'yok_docs', 4),
+                          onRemove: (i) => _removeDocumentAt(_yokDocuments, i),
                         ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _yokAppsInfo,
-                          textCapitalization: TextCapitalization.sentences,
-                          minLines: 3,
-                          maxLines: 6,
-                          decoration: _decoration('YÖK başvuru ve sonuç metni'),
+                        const SizedBox(height: 20),
+                        _pdfDocumentsBlock(
+                          title: 'ÖSYM (en fazla 4)',
+                          maxCount: 4,
+                          docs: _osymDocuments,
+                          onAdd: () => _pickPdfDocument(_osymDocuments, 'osym_docs', 4),
+                          onRemove: (i) => _removeDocumentAt(_osymDocuments, i),
                         ),
-                        const SizedBox(height: 16),
-                        _panelSubheading('YÖK ek belgeleri'),
-                        _formHint(
-                          'PDF, Word veya görsel seçilir; dosya uygulama klasörüne kopyalanır. '
-                          'Çekmedeki YÖK sayfasından «Aç» ile görüntüleyebilirsiniz.',
-                        ),
-                        _miniBar('Belge ekle', _pickYokDocument),
-                        if (_yokDocuments.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              'Henüz belge yok.',
-                              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
-                            ),
-                          )
-                        else
-                          ...List.generate(
-                            _yokDocuments.length,
-                            (i) => _removeCard(
-                              title: _yokDocTitle(_yokDocuments[i]),
-                              subtitle: _yokDocSubtitle(_yokDocuments[i]),
-                              onOpen: () => _openYokDocument(_yokDocuments[i]),
-                              onRemove: () => _removeYokDocumentAt(i),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Divider(height: 1, color: Colors.grey.shade300),
-                        const SizedBox(height: 12),
-                        _panelSubheading('ÖSYM sınavları'),
-                        _formHint(
-                          'Sınav adı, tarih ve puan/not. Çekmede sınav kartları olarak görünür.',
-                        ),
-                        _miniBar('Sınav satırları', _dialogOsymExam),
-                        if (_osymExams.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'Henüz sınav yok — «Ekle» ile satır ekleyin.',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: Colors.grey.shade600,
-                                height: 1.35,
-                              ),
-                            ),
-                          )
-                        else
-                          ...List.generate(
-                            _osymExams.length,
-                            (i) => _removeCard(
-                              title: _osymExams[i].examName.isEmpty
-                                  ? 'İsimsiz sınav'
-                                  : _osymExams[i].examName,
-                              subtitle: _osymExamSubtitle(_osymExams[i]),
-                              onRemove: () => setState(() => _osymExams.removeAt(i)),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _osymInfo,
-                          textCapitalization: TextCapitalization.sentences,
-                          minLines: 2,
-                          maxLines: 4,
-                          decoration: _decoration('ÖSYM ek notlar (isteğe bağlı)').copyWith(
-                            helperText:
-                                'Liste dışında kısa açıklama; çekmede listenin altında gösterilir.',
-                            helperStyle: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
+                        const SizedBox(height: 20),
+                        _pdfDocumentsBlock(
+                          title: 'Dijital kimlik (en fazla 6)',
+                          maxCount: 6,
+                          docs: _digitalDocuments,
+                          onAdd: () => _pickPdfDocument(_digitalDocuments, 'digital_docs', 6),
+                          onRemove: (i) => _removeDocumentAt(_digitalDocuments, i),
                         ),
                       ],
                     ),
                   ),
                   _profileSectionCard(
                     title: 'Okul logosu',
-                    subtitle: 'Sol menü üstündeki üniversite görseli.',
                     child: Column(
                       children: [
                         AspectRatio(
@@ -1495,105 +1395,6 @@ class _SemesterGpaFormDialogState extends State<_SemesterGpaFormDialog> {
   }
 }
 
-class _OsymExamFormDialog extends StatefulWidget {
-  const _OsymExamFormDialog({required this.deco});
-
-  final InputDecoration Function(String label) deco;
-
-  @override
-  State<_OsymExamFormDialog> createState() => _OsymExamFormDialogState();
-}
-
-class _OsymExamFormDialogState extends State<_OsymExamFormDialog> {
-  late final TextEditingController _name;
-  late final TextEditingController _date;
-  late final TextEditingController _score;
-  late final TextEditingController _note;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController();
-    _date = TextEditingController();
-    _score = TextEditingController();
-    _note = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _date.dispose();
-    _score.dispose();
-    _note.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    FocusScope.of(context).unfocus();
-    final n = _name.text.trim();
-    if (n.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sınav adını girin.')),
-      );
-      return;
-    }
-    Navigator.of(context).pop(
-      OsymExamRecord(
-        examName: n,
-        examDate: _date.text.trim(),
-        score: _score.text.trim(),
-        note: _note.text.trim(),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('ÖSYM sınavı'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: widget.deco('Sınav adı').copyWith(
-                hintText: 'Örn. 2025-TYT, 2025-AYT',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _date,
-              decoration: widget.deco('Sınav tarihi').copyWith(
-                hintText: 'Örn. 18.06.2025',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _score,
-              decoration: widget.deco('Puan / not').copyWith(
-                hintText: 'Ham puan, net, yerleştirme puanı…',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _note,
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: 2,
-              decoration: widget.deco('Kısa not (isteğe bağlı)'),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('İptal')),
-        FilledButton(onPressed: _submit, child: const Text('Tamam')),
-      ],
-    );
-  }
-}
-
 class _GradeEntryResult {
   const _GradeEntryResult({
     required this.universityName,
@@ -1641,7 +1442,13 @@ class _GradeEntryDialogState extends State<_GradeEntryDialog> {
   late final TextEditingController _letter;
   late final TextEditingController _passStatus;
 
-  static const _classOptions = ['1. Sınıf', '2. Sınıf', '3. Sınıf', '4. Sınıf'];
+  static const _classOptions = [
+    'Hazırlık',
+    '1. Sınıf',
+    '2. Sınıf',
+    '3. Sınıf',
+    '4. Sınıf',
+  ];
   static const _termSeasonOptions = ['Güz', 'Bahar', 'Yaz', 'Yıllık'];
   static const _passOptions = ['Geçti', 'Kaldı', 'Geçti (Büt)'];
 

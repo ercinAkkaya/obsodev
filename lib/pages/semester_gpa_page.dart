@@ -34,7 +34,7 @@ class SemesterGpaPage extends StatelessWidget {
             title: const Text('Dönem Ortalamaları'),
           ),
           body: list.isEmpty
-              ? _hint(context)
+                    ? const SizedBox.shrink()
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: list.length,
@@ -75,29 +75,4 @@ class SemesterGpaPage extends StatelessWidget {
     );
   }
 
-  Widget _hint(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.analytics_outlined, size: 56, color: Colors.grey.shade500),
-            const SizedBox(height: 16),
-            Text(
-              'Henüz dönem ortalaması yok',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Profil › «Dönem ortalamaları» bölümünden ekleyebilirsiniz.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

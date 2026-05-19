@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'data/user_credentials_repository.dart';
 
 /// Beyaz arayüz; yalnızca kişisel bilgiler ve profil fotoğrafı.
-/// Öğrenim ve ÖBS verileri ana sayfa üst çubuğundaki zil simgesine basınca açılır.
+/// Kimlik bilgileri (ad, T.C., şifre, fotoğraf). Akademik veri girişi sol menü logosundan açılır.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.onLogout});
 
@@ -216,6 +216,8 @@ class _ProfilePageState extends State<ProfilePage> {
       digitalIdInfo: stored.digitalIdInfo,
       yokAppsInfo: stored.yokAppsInfo,
       yokDocumentsJson: stored.yokDocumentsJson,
+      osymDocumentsJson: stored.osymDocumentsJson,
+      digitalIdDocumentsJson: stored.digitalIdDocumentsJson,
       osymInfo: stored.osymInfo,
       osymExamsJson: stored.osymExamsJson,
     );

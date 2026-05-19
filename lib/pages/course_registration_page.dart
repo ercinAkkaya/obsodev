@@ -53,7 +53,7 @@ class CourseRegistrationPage extends StatelessWidget {
                       Expanded(
                         child: Text(
                           reg.isEmpty
-                              ? 'Ders kayıt tarihi: Profilde «Kayıt tarihi» alanından girilebilir.'
+                              ? 'Ders kayıt tarihi: —'
                               : 'Ders kayıt tarihi: $reg',
                           style: TextStyle(
                             fontSize: 14,
@@ -70,7 +70,7 @@ class CourseRegistrationPage extends StatelessWidget {
               ),
               Expanded(
                 child: list.isEmpty
-                    ? _hint(context)
+                    ? const SizedBox.shrink()
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: list.length,
@@ -112,29 +112,4 @@ class CourseRegistrationPage extends StatelessWidget {
     );
   }
 
-  Widget _hint(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.library_books_outlined, size: 56, color: Colors.grey.shade500),
-            const SizedBox(height: 16),
-            Text(
-              'Kayıtlı ders görünmüyor',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Profil ekranında «Ders kayıt bilgileri» bölümünden ders ekleyip Kaydet\'e basın.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

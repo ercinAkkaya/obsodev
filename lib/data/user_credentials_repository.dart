@@ -31,6 +31,8 @@ class UserProfile {
     this.osymInfo = '',
     this.osymExamsJson = '[]',
     this.yokDocumentsJson = '[]',
+    this.osymDocumentsJson = '[]',
+    this.digitalIdDocumentsJson = '[]',
   });
 
   final String firstName;
@@ -94,8 +96,14 @@ class UserProfile {
   /// [OsymExamRecord] listesi (`[]`) — sınav adı, tarih, puan.
   final String osymExamsJson;
 
-  /// [YokDocumentRecord] listesi (`[]`) — YÖK başvuru belgeleri.
+  /// [YokDocumentRecord] listesi (`[]`) — YÖK PDF belgeleri.
   final String yokDocumentsJson;
+
+  /// ÖSYM PDF belgeleri.
+  final String osymDocumentsJson;
+
+  /// Dijital kimlik PDF belgeleri.
+  final String digitalIdDocumentsJson;
 }
 
 /// Yerel SQLite: tek satır kullanıcı + `logged_in` oturumu.
@@ -113,7 +121,7 @@ class UserCredentialsRepository {
   static const String _table = 'credentials';
   static const int _singletonId = 1;
   static const String _dbFile = 'obs_user.db';
-  static const int _dbVersion = 12;
+  static const int _dbVersion = 13;
 
   Future<Directory> get credentialDirectory async {
     final sub = Directory(p.join(Directory.systemTemp.path, 'obs_credentials'));
@@ -161,6 +169,8 @@ CREATE TABLE $_table (
   osym_info TEXT NOT NULL DEFAULT '',
   osym_exams_json TEXT NOT NULL DEFAULT '[]',
   yok_documents_json TEXT NOT NULL DEFAULT '[]',
+  osym_documents_json TEXT NOT NULL DEFAULT '[]',
+  digital_id_documents_json TEXT NOT NULL DEFAULT '[]',
   logged_in INTEGER NOT NULL DEFAULT 0
 )
 ''');
@@ -261,6 +271,14 @@ CREATE TABLE $_table (
             "ALTER TABLE $_table ADD COLUMN yok_documents_json TEXT NOT NULL DEFAULT '[]'",
           );
         }
+        if (oldVersion < 13) {
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN osym_documents_json TEXT NOT NULL DEFAULT '[]'",
+          );
+          await db.execute(
+            "ALTER TABLE $_table ADD COLUMN digital_id_documents_json TEXT NOT NULL DEFAULT '[]'",
+          );
+        }
       },
     );
     await _ensureSingletonRow(_db!);
@@ -294,6 +312,8 @@ CREATE TABLE $_table (
         'osym_info': '',
         'osym_exams_json': '[]',
         'yok_documents_json': '[]',
+        'osym_documents_json': '[]',
+        'digital_id_documents_json': '[]',
         'logged_in': 0,
       };
 
@@ -334,6 +354,8 @@ CREATE TABLE $_table (
       osymInfo: (m['osym_info'] as String?)?.trim() ?? '',
       osymExamsJson: _columnJson(m, 'osym_exams_json'),
       yokDocumentsJson: _columnJson(m, 'yok_documents_json'),
+      osymDocumentsJson: _columnJson(m, 'osym_documents_json'),
+      digitalIdDocumentsJson: _columnJson(m, 'digital_id_documents_json'),
     );
   }
 
@@ -411,6 +433,8 @@ CREATE TABLE $_table (
         osymInfo: '',
         osymExamsJson: '[]',
         yokDocumentsJson: '[]',
+        osymDocumentsJson: '[]',
+        digitalIdDocumentsJson: '[]',
       );
 
   /// [logged_in] sütununa dokunmaz — oturum korunur.
@@ -457,6 +481,12 @@ CREATE TABLE $_table (
         'yok_documents_json': profile.yokDocumentsJson.trim().isEmpty
             ? '[]'
             : profile.yokDocumentsJson.trim(),
+        'osym_documents_json': profile.osymDocumentsJson.trim().isEmpty
+            ? '[]'
+            : profile.osymDocumentsJson.trim(),
+        'digital_id_documents_json': profile.digitalIdDocumentsJson.trim().isEmpty
+            ? '[]'
+            : profile.digitalIdDocumentsJson.trim(),
       },
       where: 'id = ?',
       whereArgs: [_singletonId],
@@ -492,6 +522,8 @@ CREATE TABLE $_table (
       osymInfo: e.osymInfo,
       osymExamsJson: e.osymExamsJson,
       yokDocumentsJson: e.yokDocumentsJson,
+      osymDocumentsJson: e.osymDocumentsJson,
+      digitalIdDocumentsJson: e.digitalIdDocumentsJson,
     ));
   }
 

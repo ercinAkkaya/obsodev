@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               )
                             : Text(
-                                'YÖKSİS ile giriş',
+                                'YOK OBS ile giriş',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: r.d(15),
@@ -497,15 +497,13 @@ class _YokHeaderBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/yok.png',
+                      'assets/yoklogo.jpg',
                       height: r.d(74),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/yok.png',
                         height: r.d(74),
-                        width: r.d(108),
-                        color: LoginPage._iconBoxBg,
-                        alignment: Alignment.center,
-                        child: Text('yok', style: TextStyle(fontSize: r.d(10))),
+                        fit: BoxFit.contain,
                       ),
                     ),
                     SizedBox(width: r.d(16)),

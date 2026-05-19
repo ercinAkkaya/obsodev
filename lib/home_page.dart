@@ -1,9 +1,6 @@
-import 'dart:io' show Directory, File;
+import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 
 import 'data/user_credentials_repository.dart';
 import 'obs_drawer.dart';
@@ -11,6 +8,7 @@ import 'pages/attendance_status_page.dart';
 import 'pages/course_registration_page.dart';
 import 'pages/drawer_portal_pages.dart';
 import 'pages/grade_list_page.dart';
+import 'pages/pdf_documents_portal_page.dart';
 import 'pages/semester_gpa_page.dart';
 import 'profile_academic_page.dart';
 import 'profile_page.dart';
@@ -95,71 +93,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _pickSchoolLogoFromDrawer() {
+  /// Sol menü üniversite logosu — tüm akademik veri girişi.
+  void _openDataEntryFromDrawerLogo() {
     _scaffoldKey.currentState?.closeDrawer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _selectAndSaveSchoolLogoFromGallery();
+      Navigator.of(context)
+          .push<void>(
+            MaterialPageRoute<void>(builder: (_) => const ProfileAcademicPage()),
+          )
+          .then((_) {
+        if (mounted) _refreshHeader();
+      });
     });
-  }
-
-  Future<void> _selectAndSaveSchoolLogoFromGallery() async {
-    XFile? x;
-    try {
-      x = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1200,
-        imageQuality: 85,
-      );
-    } on MissingPluginException catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Galeri erişimi yok — tam yeniden başlatmayı deneyin.')),
-      );
-      return;
-    }
-    if (x == null || !mounted) return;
-    try {
-      final dir = await UserCredentialsRepository.instance.credentialDirectory;
-      if (!mounted) return;
-      final logos = Directory(p.join(dir.path, 'logos'));
-      if (!await logos.exists()) await logos.create(recursive: true);
-      final ext = p.extension(x.path);
-      final safeExt = ext.isEmpty ? '.jpg' : ext;
-      final dest =
-          p.join(logos.path, 'school_${DateTime.now().millisecondsSinceEpoch}$safeExt');
-      await File(dest).writeAsBytes(await x.readAsBytes());
-      await UserCredentialsRepository.instance.setSchoolLogoPath(dest);
-      if (!mounted) return;
-      await _refreshHeader();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Üniversite logosu güncellendi.')),
-      );
-    } on Object catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logo kaydedilemedi.')),
-      );
-    }
   }
 
   Future<void> _openProfile() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => ProfilePage(onLogout: widget.onLogout),
-      ),
-    );
-    if (!mounted) return;
-    await _refreshHeader();
-  }
-
-  /// Zil: eğitim / ÖBS / portal metinleri (dönüşte başlık yenilenir).
-  Future<void> _openAcademicFromBell() async {
-    HapticFeedback.lightImpact();
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const ProfileAcademicPage(),
       ),
     );
     if (!mounted) return;
@@ -190,7 +142,7 @@ class _HomePageState extends State<HomePage> {
     final t = _academicTerm.trim();
     if (y.isEmpty && t.isEmpty) {
       return const Text(
-        'Profilden dönem',
+        '—',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -379,16 +331,16 @@ class _HomePageState extends State<HomePage> {
 
     final periodSubtitle = _lineOrPlaceholder(
       '${_academicYear.trim()} ${_academicTerm.trim()}'.trim(),
-      'Profil › Öğrenim bilgileri',
+      '—',
     );
 
     final advisorBody = _lineOrPlaceholder(
       _advisorInfo,
-      'Profil › Danışman',
+      '—',
     );
 
-    final dept = _lineOrPlaceholder(_eduDepartment, 'Bölüm / program (Profil)');
-    final grd = _lineOrPlaceholder(_eduGrade, 'Sınıf (Profil)');
+    final dept = _lineOrPlaceholder(_eduDepartment, '—');
+    final grd = _lineOrPlaceholder(_eduGrade, '—');
 
     final regDate = _registrationDate.trim().isEmpty
         ? '—'
@@ -463,19 +415,27 @@ class _HomePageState extends State<HomePage> {
         onDonemOrtalamalari: () => _openAfterDrawer(const SemesterGpaPage()),
         onNotListesi: () => _openAfterDrawer(const GradeListPage()),
         onDevamsizlik: () => _openAfterDrawer(const AttendanceStatusPage()),
-        onYokBasvurular: () => _openAfterDrawer(const YokApplicationsPortalPage()),
-        onDijitalKimlik: () => _openAfterDrawer(
-          PortalProfileTextPage(
-            title: 'Dijital kimliğim',
-            emptyHint:
-                'Profil › «Dijital kimlik bilgisi» alanını doldurduktan sonra Kaydet\'e basın.',
-            textOf: (p) => p.digitalIdInfo,
+        onYokBasvurular: () => _openAfterDrawer(
+          const PdfDocumentsPortalPage(
+            title: 'Başvurular ve sonuçları',
+            kind: PdfDocumentKind.yok,
           ),
         ),
-        onOsym: () => _openAfterDrawer(const OsymExamsPortalPage()),
+        onDijitalKimlik: () => _openAfterDrawer(
+          const PdfDocumentsPortalPage(
+            title: 'Dijital kimliğim',
+            kind: PdfDocumentKind.digital,
+          ),
+        ),
+        onOsym: () => _openAfterDrawer(
+          const PdfDocumentsPortalPage(
+            title: 'ÖSYM sonuçları başvuruları',
+            kind: PdfDocumentKind.osym,
+          ),
+        ),
         onAktifDonem: () => _openAfterDrawer(const ActiveAcademicPeriodPage()),
         onAktifOgrenim: () => _openAfterDrawer(const ActiveStudyInfoPage()),
-        onSchoolLogoTap: _pickSchoolLogoFromDrawer,
+        onSchoolLogoTap: _openDataEntryFromDrawerLogo,
       ),
       appBar: AppBar(
         backgroundColor: _obsAppBarBg,
@@ -508,31 +468,16 @@ class _HomePageState extends State<HomePage> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 2),
-            child: IconButton(
-              tooltip: 'Duyurular',
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-              style: IconButton.styleFrom(
-                foregroundColor: Colors.white.withValues(alpha: 0.55),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              onPressed: _openAcademicFromBell,
-              icon: Badge(
-                backgroundColor: const Color(0xFFE53935),
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                label: Text(
-                  '0',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.98),
-                    height: 1,
+            child: ExcludeSemantics(
+              child: SizedBox(
+                width: 44,
+                height: 48,
+                child: Center(
+                  child: Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.white.withValues(alpha: 0.55),
+                    size: 24,
                   ),
-                ),
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  color: Colors.white.withValues(alpha: 0.72),
-                  size: 24,
                 ),
               ),
             ),

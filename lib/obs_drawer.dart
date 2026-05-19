@@ -81,7 +81,7 @@ class ObsNavigationDrawer extends StatelessWidget {
                 child: Column(
                   children: [
                     Tooltip(
-                      message: 'Üniversite logosu — galeriden değiştir',
+                      message: 'Veri girişi — üniversite logosu',
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(

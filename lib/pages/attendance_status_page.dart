@@ -33,7 +33,7 @@ class AttendanceStatusPage extends StatelessWidget {
             title: const Text('Devamsızlık Durumu'),
           ),
           body: list.isEmpty
-              ? _hint(context)
+                    ? const SizedBox.shrink()
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: list.length,
@@ -71,29 +71,4 @@ class AttendanceStatusPage extends StatelessWidget {
     );
   }
 
-  Widget _hint(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.event_busy_outlined, size: 56, color: Colors.grey.shade500),
-            const SizedBox(height: 16),
-            Text(
-              'Devamsızlık kaydı yok',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Profil › «Devamsızlık kayıtları» bölümünden veri girin.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
